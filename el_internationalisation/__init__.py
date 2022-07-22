@@ -8,7 +8,7 @@ __version__ = "0.1.1"
 __author__ = 'Andrew Cunningham'
 __credits__ = 'Enabling Languages'
 
-from . digits import *
-from . strings import *
-from . bidi import *
-from . analyse import *
+from .digit_support import *
+from .string_support import *
+from .bidi_support import *
+from .analyse import *

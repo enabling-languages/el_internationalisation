@@ -1,4 +1,5 @@
-import unicodedataplus, tabulate, prettytable
+import unicodedataplus, prettytable, regex
+from bidi_support import bidi_envelope, is_bidi
 
 # Typecast string to a list, splitting characters
 def splitString(text):
@@ -13,9 +14,9 @@ def utf16len(text):
 # codepoints and characters in string
 #
 # Usage:
-#    elu.codepoints("𞤀𞤣𞤤𞤢𞤥 𞤆𞤵𞤤𞤢𞤪")
-#    elu.cp("𞤀𞤣𞤤𞤢𞤥 𞤆𞤵𞤤𞤢𞤪", extended=False)
-#    elu.cp("𞤀𞤣𞤤𞤢𞤥 𞤆𞤵𞤤𞤢𞤪", prefix=False, extended=False)
+#    eli.codepoints("𞤀𞤣𞤤𞤢𞤥 𞤆𞤵𞤤𞤢𞤪")
+#    eli.cp("𞤀𞤣𞤤𞤢𞤥 𞤆𞤵𞤤𞤢𞤪", extended=False)
+#    eli.cp("𞤀𞤣𞤤𞤢𞤥 𞤆𞤵𞤤𞤢𞤪", prefix=False, extended=False)
 
 def codepoints(text, prefix=True, extended=True):
     if extended:
