@@ -1,5 +1,4 @@
-import unicodedataplus
-
+import unicodedataplus, tabulate, prettytable
 
 # Typecast string to a list, splitting characters
 def splitString(text):
@@ -10,8 +9,6 @@ def utf8len(text):
 
 def utf16len(text):
     return len(text.encode('utf-16-le'))
-
-
 
 # codepoints and characters in string
 #
@@ -28,11 +25,35 @@ def codepoints(text, prefix=True, extended=True):
 
 cp = codepoints
 
-
-
-
+# Convert a string of comma or space separated unicode codepoints to characters
+#    Usage: codepointsToChar("U+0063 U+0301")
+#        or codepointsToChar("0063 0301")
+def codepointsToChar(str):
+    str = str.lower().replace("u+", "")
+    l = regex.split(", |,| ", str)
+    r = ""
+    for c in l:
+        r += chr(int(c, 16))
+    return r
 
 # Prepend dotted circle to combining diacritics in a string
 # Input string, returns string
 def add_dotted_circle(text):
     return "".join(["\u25CC" + i if unicodedataplus.combining(i) else i for i in list(text)])
+
+def unicode_data(text):
+    print(f"String: {text}")
+    t = prettytable.PrettyTable(["char", "cp", "name", "script", "block", "cat", "bidi", "cc"])
+    for c in list(text):
+        if unicodedataplus.name(c,'-')!='-':
+            cr = bidi_envelope(c, dir="auto", mode="isolate") if is_bidi(c) else c
+            t.add_row([cr, "%04X"%(ord(c)), 
+                unicodedataplus.name(c,'-'), 
+                unicodedataplus.script(c), 
+                unicodedataplus.block(c), 
+                unicodedataplus.category(c), 
+                unicodedataplus.bidirectional(c),
+                unicodedataplus.combining(c)])
+    return t
+
+udata = unicode_data
