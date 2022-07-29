@@ -6,8 +6,8 @@
 #
 ##########################################################
 
-import regex, unicodedataplus
-from icu import UnicodeString, Locale, Normalizer2, UNormalizationMode2
+import regex, unicodedataplus, icu
+# from icu import icu.UnicodeString, icu.Locale, icu.Normalizer2, icu.UNormalizationMode2
 
 ####################
 # isalpha()
@@ -68,25 +68,25 @@ def identifier_caseless_match(x, y):
 
 def NFD(s, engine="ud"):
     if engine.lower() == "icu":
-        normalizer = Normalizer2.getInstance(None, "nfc", UNormalizationMode2.DECOMPOSE)
+        normalizer = icu.Normalizer2.getInstance(None, "nfc", icu.UNormalizationMode2.DECOMPOSE)
         return normalizer.normalize(s)
     return unicodedataplus.normalize('NFD', s)
 
 def NFKD(s, engine="ud"):
     if engine.lower() == "icu":
-        normalizer = Normalizer2.getInstance(None, "nfkc", UNormalizationMode2.DECOMPOSE)
+        normalizer = icu.Normalizer2.getInstance(None, "nfkc", icu.UNormalizationMode2.DECOMPOSE)
         return normalizer.normalize(s)
     return unicodedataplus.normalize('NFKD', s)
 
 def NFC(s, engine="ud"):
     if engine.lower() == "icu":
-        normalizer = Normalizer2.getInstance(None, "nfc", UNormalizationMode2.COMPOSE)
+        normalizer = icu.Normalizer2.getInstance(None, "nfc", icu.UNormalizationMode2.COMPOSE)
         return normalizer.normalize(s)
     return unicodedataplus.normalize('NFC', s)
 
 def NFKC(s, engine="ud"):
     if engine.lower() == "icu":
-        normalizer = Normalizer2.getInstance(None, "nfkc", UNormalizationMode2.COMPOSE)
+        normalizer = icu.Normalizer2.getInstance(None, "nfkc", icu.UNormalizationMode2.COMPOSE)
         return normalizer.normalize(s)
     return unicodedataplus.normalize('NFKC', s)
 
@@ -175,20 +175,20 @@ def clean_presentation_forms(text, folding=False):
 ####################
 #
 # PyICU Helper functions for casing and casefolding.
-# s is a string, l is an ICU locale object (defaulting to CLDR Root Locale)
+# s is a string, l is an ICU Locale object (defaulting to CLDR Root Locale)
 #
 ####################
 
-def toLower(s, l=Locale.getRoot()):
-    return str(UnicodeString(s).toLower(l))
-def toUpper(s, l=Locale.getRoot()):
-    return str(UnicodeString(s).toUpper(l))
-def toTitle(s, l=Locale.getRoot()):
-    return str(UnicodeString(s).toTitle(l))
-def toSentence(s, l=Locale.getRoot()):
-    return(str(UnicodeString(s[0]).toUpper(l)) + str(UnicodeString(s[1:]).toLower(l)))
+def toLower(s, l=icu.Locale.getRoot()):
+    return str(icu.UnicodeString(s).toLower(l))
+def toUpper(s, l=icu.Locale.getRoot()):
+    return str(icu.UnicodeString(s).toUpper(l))
+def toTitle(s, l=icu.Locale.getRoot()):
+    return str(icu.UnicodeString(s).toTitle(l))
+def toSentence(s, l=icu.Locale.getRoot()):
+    return(str(icu.UnicodeString(s[0]).toUpper(l)) + str(icu.UnicodeString(s[1:]).toLower(l)))
 def foldCase(s):
-    return str(UnicodeString(s).foldCase())
+    return str(icu.UnicodeString(s).foldCase())
 
 ####################
 #

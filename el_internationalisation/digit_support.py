@@ -7,8 +7,7 @@
 #
 ####################
 
-import unicodedataplus, regex, locale
-from icu import Locale, NumberFormat, LocalizedNumberFormatter, ICU_MAX_MAJOR_VERSION
+import unicodedataplus, regex, locale, icu
 
 #
 # To Western Arabic digits
@@ -165,28 +164,26 @@ def convert_to_arab_ns(n, p=None, decimal=2, sep_in=["", "."], sep_out=["\u066C"
 convert_to_kurdish_ns = convert_to_arab_ns
 
 #
-# Locale formatted numbers using PyICU
+# icu.icu.Locale formatted numbers using PyICU
 #   Supports both integers and floating point numbers.
 #
 # Usage:
 #   icu_formatted_digits(112345.05)
-#   icu_formatted_digits(112345.05, loc=Locale.getFrench())
-#   icu_formatted_digits(112345.05, loc=Locale("hi_IN@numbers=deva"))
-#   icu_formatted_digits(112345.05, loc=Locale.forLanguageTag("my-MM-u-nu-mymr"))
-#   icu_formatted_digits(112345.05, loc=Locale("ckb_IQ@numbers=arab"))
-#   icu_formatted_digits(112345.05, loc=Locale.forLanguageTag("ckb-IQ-u-nu-arab"))
-#   icu_formatted_digits(112345.05, loc=Locale.forLanguageTag("ckb-IR-u-nu-arabext"))
-
-from icu import Locale, NumberFormat, LocalizedNumberFormatter, ICU_MAX_MAJOR_VERSION
+#   icu_formatted_digits(112345.05, loc=icu.icu.Locale.getFrench())
+#   icu_formatted_digits(112345.05, loc=icu.icu.Locale("hi_IN@numbers=deva"))
+#   icu_formatted_digits(112345.05, loc=icu.icu.Locale.forLanguageTag("my-MM-u-nu-mymr"))
+#   icu_formatted_digits(112345.05, loc=icu.icu.Locale("ckb_IQ@numbers=arab"))
+#   icu_formatted_digits(112345.05, loc=icu.icu.Locale.forLanguageTag("ckb-IQ-u-nu-arab"))
+#   icu_formatted_digits(112345.05, loc=icu.icu.Locale.forLanguageTag("ckb-IR-u-nu-arabext"))
 
 def icu_formatted_digits(digit, p=None, loc=None):
     if loc is None:
-        loc = Locale.getRoot()
-    if int(ICU_MAX_MAJOR_VERSION) >= 60:
-        formatter = LocalizedNumberFormatter(loc)
+        loc = icu.Locale.getRoot()
+    if int(icu.ICU_MAX_MAJOR_VERSION) >= 60:
+        formatter = icu.LocalizedNumberFormatter(loc)
         r = formatter.formatDouble(digit) if isinstance(digit, float) else formatter.formatInt(digit)
     else:
-        formatter = NumberFormat.createInstance(loc)
+        formatter = icu.NumberFormat.createInstance(loc)
         r = formatter.format(digit)
     return r
 

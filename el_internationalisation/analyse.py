@@ -1,5 +1,5 @@
 import unicodedataplus, prettytable, regex
-from bidi_support import bidi_envelope, is_bidi
+from .bidi_support import bidi_envelope, is_bidi
 
 # Typecast string to a list, splitting characters
 def splitString(text):
