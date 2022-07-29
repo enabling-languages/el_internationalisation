@@ -55,6 +55,6 @@ def unicode_data(text):
                 unicodedataplus.category(c), 
                 unicodedataplus.bidirectional(c),
                 unicodedataplus.combining(c)])
-    return t
+    print(t)
 
 udata = unicode_data
