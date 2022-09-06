@@ -126,16 +126,17 @@ def unicode_data(text: str) -> None:
 
 udata = unicode_data
 
-def scan_bidi(text: str) -> Tuple[bool, bool, bool, bool, Set[Optional[str]]]:
+def scan_bidi(text: str) -> Tuple[bool, bool, bool, bool, bool, Set[Optional[str]]]:
     """Analyse string for bidi support.
 
     The script returns a tuple indicating if sting contains bidirectional text and if it uses bidirectional formatting characters. Returns a tuple of:
       * bidi_status - indicates if RTL characters in string,
       * isolates - indicates if bidi isolation formatting characters are in string,
       * embeddings - indicates if bidi embedding formatting characters are in string,
+      * marks - indicates if bidi marks are in the string,
       * overrides - indicates if bidi embedding formatting characters are in string,
-      * formatting_characters - a set of bidirectional formatting characters in string. Marks, embeddings, isolates and overrides are all supported. Bidirectional marks are only identified in formatting_characters.
-
+      * formatting_characters - a set of bidirectional formatting characters in string.
+    
     Args:
         text (str): Text to analyse
 
@@ -145,10 +146,11 @@ def scan_bidi(text: str) -> Tuple[bool, bool, bool, bool, Set[Optional[str]]]:
     bidi_status: bool = is_bidi(text)
     isolates: bool = bool(regex.search('[\u2066\u2067\u2068]', text)) and bool(regex.search('\u2069', text))
     embeddings: bool = bool(regex.search('[\u202A\u202B]', text)) and bool(regex.search('\u202C', text))
+    marks: bool = bool(regex.search('[\u200E\u200F]', text))
     overrides: bool = bool(regex.search('[\u202D\u202E]', text)) and bool(regex.search('\u202C', text))
     #formatting_status: bool = bool(regex.search('[\u202a-\u202e\u2066-\u2069]', text))
     formating_characters: Set[Optional[str]] = set(regex.findall('[\u200e\u200f\u202a-\u202e\u2066-\u2069]', text))
     formating_characters = {f"U+{ord(c):04X} ({unicodedataplus.name(c,'-')})" for c in formating_characters if formating_characters is not None}
-    return (bidi_status, isolates, embeddings, overrides, formating_characters)
+    return (bidi_status, isolates, embeddings, marks, overrides, formating_characters)
 
 scan = scan_bidi
