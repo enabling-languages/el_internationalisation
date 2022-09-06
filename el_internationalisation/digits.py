@@ -8,24 +8,31 @@
 ####################
 
 import unicodedataplus, regex, locale, icu
+from typing import Tuple, Pattern, Union
+
+# TODO:
+#   * add type hinting
+#   * add DocStrings
 
 #
 # To Western Arabic digits
 #
-def convert_digits(s, sep = (",", ".")):
-    nd = regex.compile(r'^-?\p{Nd}[,.\u066B\u066C\u0020\u2009\u202F\p{Nd}]*$')
+def convert_digits(text: str, sep: Tuple[str, str] = (",", ".")) -> Union[int, float, None]:
+    nd: Pattern[str] = regex.compile(r'^-?\p{Nd}[,.\u066B\u066C\u0020\u2009\u202F\p{Nd}]*$')
+    tsep: str
+    dsep: str
     tsep, dsep = sep
-    if nd.match(s):
-        s = s.replace(tsep, "")
-        s = ''.join([str(unicodedataplus.decimal(c, c)) for c in s])
-        if dsep in s:
-            return float(s.replace(dsep, ".")) if dsep != "." else float(s)
-        return int(s)
-    return s
+    if nd.match(text):
+        text = text.replace(tsep, "")
+        text = ''.join([str(unicodedataplus.decimal(c, c)) for c in text])
+        if dsep in text:
+            return float(text.replace(dsep, ".")) if dsep != "." else float(text)
+        return int(text)
+    return None
 
 def is_number(v, sep = (",", ".")):
-    original = v
-    n = regex.compile(r'^-?\p{N}[,.\u066B\u066C\u0020\u2009\u202F\p{N}]+$')
+    # original = v
+    # n = regex.compile(r'^-?\p{N}[,.\u066B\u066C\u0020\u2009\u202F\p{N}]+$')
     nd = regex.compile(r'^-?\p{Nd}[,.\u066B\u066C\u0020\u2009\u202F\p{Nd}]+$')
     v = "".join(v.split())
     if isinstance(v, int) or isinstance(v, float):

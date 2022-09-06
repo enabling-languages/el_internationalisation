@@ -9,6 +9,10 @@
 import regex, unicodedataplus, icu
 # from icu import icu.UnicodeString, icu.Locale, icu.Normalizer2, icu.UNormalizationMode2
 
+# TODO:
+#   * add type hinting
+#   * add DocStrings
+
 ####################
 # isalpha()
 #
@@ -54,8 +58,6 @@ def compatibility_caseless_match(x, y):
 def NFKC_Casefold(s):
   return unicodedataplus.normalize("NFC", unicodedataplus.normalize('NFKC', s).casefold())
 
-NFKC_CF = NFKC_Casefold
-
 def identifier_caseless_match(x, y):
   return NFKC_Casefold(unicodedataplus.normalize("NFD", x)) == NFKC_Casefold(unicodedataplus.normalize("NFD", y))
 
@@ -90,8 +92,14 @@ def NFKC(s, engine="ud"):
         return normalizer.normalize(s)
     return unicodedataplus.normalize('NFKC', s)
 
+def NFKC_CF(s, engine="ud"):
+    if engine.lower() == "icu":
+        normalizer = icu.Normalizer2.getInstance(None, "nfkc_cf", icu.UNormalizationMode2.COMPOSE)
+        return normalizer.normalize(s)
+    return NFKC_Casefold(s)
+
 # Normalise to specified Unicode Normalisation Form, defaulting to NFC.
-# nf = NFC | NFKC | NFD | NFKD | NFM
+# nf = NFC | NFKC | NFKC_CF | NFD | NFKD | NFM
 # NFM: Normalise strings according to MARC21 Character repetoire requirements
 # TODO:
 #    * Add support for NFKC_CF
@@ -104,7 +112,7 @@ def replace_all(text, pattern_dict):
 
 def normalise(nf, text):
     nf = nf.upper()
-    if nf not in ["NFC", "NFKC", "NFD", "NFKD", "NFM"]:
+    if nf not in ["NFC", "NFKC", "NFKC_CF", "NFD", "NFKD", "NFM"]:
         nf="NFC"
     # MNF (Marc Normalisation Form)
     def marc21_normalise(text):
@@ -150,6 +158,8 @@ def normalise(nf, text):
         return text
     if nf == "NFM":
         return marc21_normalise(text)
+    elif nf == "NFKC_CF":
+        return NFKC_CF(text)
     return unicodedataplus.normalize(nf, text)
 
 
