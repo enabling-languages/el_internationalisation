@@ -6,11 +6,10 @@
 
 import unicodedataplus, prettytable, regex
 from icu import CanonicalIterator
-from typing import List, Set, Tuple, Optional
 from .bidi import bidi_envelope, is_bidi
 from .ustrings import has_presentation_forms
 
-def splitString(text: str) -> list:
+def splitString(text):
     """Typecast string to a list, splitting sting into a list of characters.
     Character level tokenisation.
 
@@ -22,7 +21,7 @@ def splitString(text: str) -> list:
     """
     return list(text)
 
-def utf8len(text: str) -> int:
+def utf8len(text):
     """Number of bytes required when string is using UTF-8 encoding.
 
     Args:
@@ -33,7 +32,7 @@ def utf8len(text: str) -> int:
     """
     return len(text.encode('utf-8'))
 
-def utf16len(text: str) -> int:
+def utf16len(text):
     """Number of bytes required when string is using UTF-16 LE or BE encoding.
 
     Args:
@@ -44,7 +43,7 @@ def utf16len(text: str) -> int:
     """
     return len(text.encode('utf-16-le'))
 
-def add_dotted_circle(text: str) -> str:
+def add_dotted_circle(text):
     """Add dotted circle to combining diacritics in a string.
 
     Args:
@@ -62,7 +61,7 @@ def add_dotted_circle(text: str) -> str:
 #    eli.cp("𞤀𞤣𞤤𞤢𞤥 𞤆𞤵𞤤𞤢𞤪", extended=True)
 #    eli.cp("𞤀𞤣𞤤𞤢𞤥 𞤆𞤵𞤤𞤢𞤪", prefix=True, extended=True)
 
-def codepoints(text: str, prefix: bool = False, extended: bool = False) -> str:
+def codepoints(text, prefix = False, extended = False):
     """Identifies codepoints in a string.
 
     Args:
@@ -81,7 +80,7 @@ def codepoints(text: str, prefix: bool = False, extended: bool = False) -> str:
 
 cp = codepoints
 
-def codepointsToChar(codepoints: str) -> str:
+def codepointsToChar(codepoints):
     """Convert a string of comma or space separated unicode codepoints to characters.
 
     Convert a string of comma or space separated unicode codepoints to characters.
@@ -96,13 +95,13 @@ def codepointsToChar(codepoints: str) -> str:
         str: Unicode characters represented by the codepoints
     """
     codepoints = codepoints.lower().replace("u+", "")
-    cplist: List[str] = regex.split(", |,| ", codepoints)
-    results: str = ""
+    cplist = regex.split(", |,| ", codepoints)
+    results = ""
     for c in cplist:
         results += chr(int(c, 16))
     return results
 
-def canonical_equivalents_str(ustring: str) -> List[str]:
+def canonical_equivalents_str(ustring):
     """List canonically equivalent strings for given string.
 
     Args:
@@ -114,7 +113,7 @@ def canonical_equivalents_str(ustring: str) -> List[str]:
     ci =  CanonicalIterator(ustring)
     return [' '.join(f"U+{ord(c):04X}" for c in char) for char in ci]
 
-def canonical_equivalents(ci: CanonicalIterator, ustring: Optional[str] = None) -> List[str]:
+def canonical_equivalents(ci, ustring = None):
     """List canonically equivalent strings for given canonical iterator instance.
 
     Args:
@@ -127,7 +126,7 @@ def canonical_equivalents(ci: CanonicalIterator, ustring: Optional[str] = None) 
         ci.setSource(ustring)
     return [' '.join(f"U+{ord(c):04X}" for c in char) for char in ci]
 
-def unicode_data(text: str) -> None:
+def unicode_data(text):
     """Display Unicode data for each character in string.
 
     Perform a character tokenisation on a string, and generate a table containing
@@ -155,7 +154,7 @@ def unicode_data(text: str) -> None:
 
 udata = unicode_data
 
-def scan_bidi(text: str) -> Tuple[bool, bool, bool, bool, bool, Set[Optional[str]], bool]:
+def scan_bidi(text):
     """Analyse string for bidi support.
 
     The script returns a tuple indicating if sting contains bidirectional text and if it uses bidirectional formatting characters. Returns a tuple of:
@@ -173,24 +172,24 @@ def scan_bidi(text: str) -> Tuple[bool, bool, bool, bool, bool, Set[Optional[str
     Returns:
         Tuple[bool, bool, bool, bool, bool, Set[Optional[str]], bool]: Summary of bidi support analysis
     """
-    bidi_status: bool = is_bidi(text)
-    isolates: bool = bool(regex.search('[\u2066\u2067\u2068]', text)) and bool(regex.search('\u2069', text))
-    embeddings: bool = bool(regex.search('[\u202A\u202B]', text)) and bool(regex.search('\u202C', text))
-    marks: bool = bool(regex.search('[\u200E\u200F]', text))
-    overrides: bool = bool(regex.search('[\u202D\u202E]', text)) and bool(regex.search('\u202C', text))
-    formating_characters: Set[Optional[str]] = set(regex.findall('[\u200e\u200f\u202a-\u202e\u2066-\u2069]', text))
+    bidi_status = is_bidi(text)
+    isolates = bool(regex.search('[\u2066\u2067\u2068]', text)) and bool(regex.search('\u2069', text))
+    embeddings = bool(regex.search('[\u202A\u202B]', text)) and bool(regex.search('\u202C', text))
+    marks = bool(regex.search('[\u200E\u200F]', text))
+    overrides = bool(regex.search('[\u202D\u202E]', text)) and bool(regex.search('\u202C', text))
+    formating_characters = set(regex.findall('[\u200e\u200f\u202a-\u202e\u2066-\u2069]', text))
     formating_characters = {f"U+{ord(c):04X} ({unicodedataplus.name(c,'-')})" for c in formating_characters if formating_characters is not None}
     presentation_forms = has_presentation_forms(text)
     return (bidi_status, isolates, embeddings, marks, overrides, formating_characters, presentation_forms)
 
 scan = scan_bidi
 
-def codepoint_names(text: str) -> List[str]:
+def codepoint_names(text):
     return [f"U+{ord(c):04X} ({unicodedataplus.name(c,'-')})" for c in text]
 
 cpnames = codepoint_names
 
-def print_list(in_list: List[str], sep: str="\n") -> None:
+def print_list(in_list, sep ="\n"):
     # print('\n'.join([ str(element) for element in in_list ]))
     print(*in_list, sep=sep)
 

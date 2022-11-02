@@ -7,7 +7,7 @@
 ##########################################################
 
 import regex, unicodedataplus, icu
-from typing import Optional
+
 # from icu import icu.UnicodeString, icu.Locale, icu.Normalizer2, icu.UNormalizationMode2
 
 # TODO:
@@ -25,8 +25,7 @@ from typing import Optional
 #    'core' uses the Python3 definition.
 #
 ####################
-def isalpha(text: str, mode: Optional[str]=None) -> bool:
-    result: bool
+def isalpha(text, mode=None):
     if (not mode) or (mode.lower() == "el"):
         if len(text) == 1:
             result = bool(regex.match(r'[\p{Alphabetic}\p{Mn}\p{Mc}\u00B7]', text))

@@ -8,11 +8,8 @@
 """
 
 import regex
-from typing import List, Tuple, Optional
 
-
-
-def is_bidi(text: str) -> bool:
+def is_bidi(text):
     """Indicates if string requires bidirectional support.
 
     Args:
@@ -21,12 +18,12 @@ def is_bidi(text: str) -> bool:
     Returns:
         bool: returns True if the string is RTL, returns False otherwise.
     """
-    bidi_reg: str = r'[\p{bc=AL}\p{bc=AN}\p{bc=LRE}\p{bc=RLE}\p{bc=LRO}\p{bc=RLO}\p{bc=PDF}\p{bc=FSI}\p{bc=RLI}\p{bc=LRI}\p{bc=PDI}\p{bc=R}]'
+    bidi_reg = r'[\p{bc=AL}\p{bc=AN}\p{bc=LRE}\p{bc=RLE}\p{bc=LRO}\p{bc=RLO}\p{bc=PDF}\p{bc=FSI}\p{bc=RLI}\p{bc=LRI}\p{bc=PDI}\p{bc=R}]'
     return bool(regex.search(bidi_reg, text))
 
 isbidi = is_bidi
 
-def bidi_envelope(text: str, dir: str = "auto", mode: str = "isolate") -> str:
+def bidi_envelope(text, dir = "auto", mode = "isolate"):
     """Wrap string in bidirectional formatting characters.
 
     Args:
@@ -64,7 +61,7 @@ def bidi_envelope(text: str, dir: str = "auto", mode: str = "isolate") -> str:
 
 envelope = bidi_envelope
 
-def strip_bidi(text: str) -> str:
+def strip_bidi(text):
     """Strip bidi formatting characters.
 
     Strip bidi formatting characters: U+2066..U+2069, U+202A..U+202E

@@ -8,7 +8,6 @@
 ####################
 
 import unicodedataplus, regex, locale, icu
-from typing import Tuple, Pattern, Union
 
 # TODO:
 #   * add type hinting
@@ -17,7 +16,7 @@ from typing import Tuple, Pattern, Union
 #
 # To Western Arabic digits
 #
-def convert_digits(text: str, sep: Tuple[str, str] = (",", ".")) -> Union[int, float, None]:
+def convert_digits(text, sep = (",", ".")):
     """To Western Arabic digits
 
     Args:
@@ -27,9 +26,7 @@ def convert_digits(text: str, sep: Tuple[str, str] = (",", ".")) -> Union[int, f
     Returns:
         Union[int, float, None]: integer or float equivalent of the string representation of th input number
     """
-    nd: Pattern[str] = regex.compile(r'^-?\p{Nd}[,.\u066B\u066C\u0020\u2009\u202F\p{Nd}]*$')
-    tsep: str
-    dsep: str
+    nd = regex.compile(r'^-?\p{Nd}[,.\u066B\u066C\u0020\u2009\u202F\p{Nd}]*$')
     tsep, dsep = sep
     if nd.match(text):
         text = text.replace(tsep, "")
