@@ -7,6 +7,7 @@
 ##########################################################
 
 import regex, unicodedataplus, icu
+from typing import Optional
 # from icu import icu.UnicodeString, icu.Locale, icu.Normalizer2, icu.UNormalizationMode2
 
 # TODO:
@@ -24,7 +25,8 @@ import regex, unicodedataplus, icu
 #    'core' uses the Python3 definition.
 #
 ####################
-def isalpha(text, mode=None):
+def isalpha(text: str, mode: Optional[str]=None) -> bool:
+    result: bool
     if (not mode) or (mode.lower() == "el"):
         if len(text) == 1:
             result = bool(regex.match(r'[\p{Alphabetic}\p{Mn}\p{Mc}\u00B7]', text))
@@ -39,27 +41,6 @@ def isalpha(text, mode=None):
 # Unicode Alphabetic derived property
 def isalpha_unicode(text):
     return bool(regex.match(r'^\p{Alphabetic}+$', text))
-
-####################
-#
-# Unicode matching
-#
-####################
-
-def caseless_match(x, y):
-  return x.casefold() == y.casefold()
-
-def canonical_caseless_match(x, y):
-  return unicodedataplus.normalize("NFD", unicodedataplus.normalize("NFD", x).casefold()) == unicodedataplus.normalize("NFD", unicodedataplus.normalize("NFD", y).casefold())
-
-def compatibility_caseless_match(x, y):
-  return unicodedataplus.normalize("NFKD", unicodedataplus.normalize("NFKD", unicodedataplus.normalize("NFD", x).casefold()).casefold()) == unicodedataplus.normalize("NFKD", unicodedataplus.normalize("NFKD", unicodedataplusnormalize("NFD", y).casefold()).casefold())
-
-def NFKC_Casefold(s):
-  return unicodedataplus.normalize("NFC", unicodedataplus.normalize('NFKC', s).casefold())
-
-def identifier_caseless_match(x, y):
-  return NFKC_Casefold(unicodedataplus.normalize("NFD", x)) == NFKC_Casefold(unicodedataplus.normalize("NFD", y))
 
 ####################
 #
@@ -162,6 +143,27 @@ def normalise(nf, text):
         return NFKC_CF(text)
     return unicodedataplus.normalize(nf, text)
 
+####################
+#
+# Unicode matching
+#
+####################
+
+def caseless_match(x, y):
+  return x.casefold() == y.casefold()
+
+def canonical_caseless_match(x, y):
+  return unicodedataplus.normalize("NFD", unicodedataplus.normalize("NFD", x).casefold()) == unicodedataplus.normalize("NFD", unicodedataplus.normalize("NFD", y).casefold())
+
+def compatibility_caseless_match(x, y):
+  return unicodedataplus.normalize("NFKD", unicodedataplus.normalize("NFKD", unicodedataplus.normalize("NFD", x).casefold()).casefold()) == unicodedataplus.normalize("NFKD", unicodedataplus.normalize("NFKD", unicodedataplusnormalize("NFD", y).casefold()).casefold())
+
+def NFKC_Casefold(s):
+  return unicodedataplus.normalize("NFC", unicodedataplus.normalize('NFKC', s).casefold())
+
+def identifier_caseless_match(x, y):
+  return NFKC_Casefold(unicodedataplus.normalize("NFD", x)) == NFKC_Casefold(unicodedataplus.normalize("NFD", y))
+
 
 ####################
 #
@@ -184,24 +186,6 @@ def clean_presentation_forms(text, folding=False):
 
 ####################
 #
-# PyICU Helper functions for casing and casefolding.
-# s is a string, l is an ICU Locale object (defaulting to CLDR Root Locale)
-#
-####################
-
-def toLower(s, l=icu.Locale.getRoot()):
-    return str(icu.UnicodeString(s).toLower(l))
-def toUpper(s, l=icu.Locale.getRoot()):
-    return str(icu.UnicodeString(s).toUpper(l))
-def toTitle(s, l=icu.Locale.getRoot()):
-    return str(icu.UnicodeString(s).toTitle(l))
-def toSentence(s, l=icu.Locale.getRoot()):
-    return(str(icu.UnicodeString(s[0]).toUpper(l)) + str(icu.UnicodeString(s[1:]).toLower(l)))
-def foldCase(s):
-    return str(icu.UnicodeString(s).foldCase())
-
-####################
-#
 # Turkish casing implemented without module dependencies.
 # PyICU provides a more comprehensive solution for Turkish.
 #
@@ -214,6 +198,46 @@ def kucukharfyap(s):
 # To uppercase
 def buyukharfyap(s):
     return unicodedataplus.normalize("NFC", s).replace('ı', 'I').replace('i', 'İ').upper()
+
+####################
+#
+# PyICU Helper functions for casing and casefolding.
+# s is a string, l is an ICU Locale object (defaulting to CLDR Root Locale)
+#
+####################
+TURKIC = ["tr", "az"]
+def toLower(s, engine="icu", lang="und"):
+    return str(icu.UnicodeString(s).toLower(l))
+def toUpper(s, engine="icu", l=icu.Locale.getRoot()):
+    return str(icu.UnicodeString(s).toUpper(l))
+def toTitle(s, engine="icu", l=icu.Locale.getRoot()):
+    return str(icu.UnicodeString(s).toTitle(l))
+
+def toSentence(s, engine="core", lang="und"):
+    lang = regex.split('[_\-]', lang.lower())[0]
+    result = ""
+    if (engine == "core") and (lang in TURKIC):
+        result = buyukharfyap(s[0]) + kucukharfyap(s[1:])
+    elif (engine == "core") and (lang not in TURKIC):
+        result = s.capitalize()
+    elif engine == "icu":
+        if lang not in list(icu.Locale.getAvailableLocales().keys()):
+            lang = "und"
+        loc = icu.Locale.getRoot() if lang == "und" else icu.Locale.forLanguageTag(lang)
+        result = str(icu.UnicodeString(s[0]).toUpper(loc)) + str(icu.UnicodeString(s[1:]).toLower(loc))
+    else:
+        result = s
+    return result
+
+def foldCase(s, engine="core"):
+    result = ""
+    if engine == "core":
+        result = s.casefold()
+    elif engine == "icu":
+        result = str(icu.UnicodeString(s).foldCase())
+    else:
+        result = s
+    return result
 
 
 ####################

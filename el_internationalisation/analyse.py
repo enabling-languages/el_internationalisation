@@ -5,8 +5,10 @@
 """
 
 import unicodedataplus, prettytable, regex
+from icu import CanonicalIterator
 from typing import List, Set, Tuple, Optional
 from .bidi import bidi_envelope, is_bidi
+from .ustrings import has_presentation_forms
 
 def splitString(text: str) -> list:
     """Typecast string to a list, splitting sting into a list of characters.
@@ -100,12 +102,37 @@ def codepointsToChar(codepoints: str) -> str:
         results += chr(int(c, 16))
     return results
 
+def canonical_equivalents_str(ustring: str) -> List[str]:
+    """List canonically equivalent strings for given string.
+
+    Args:
+        ustring (str): character, grapheme or short string to analyse.
+
+    Returns:
+        List[str]: list of all canonically equivalent forms of ustring.
+    """
+    ci =  CanonicalIterator(ustring)
+    return [' '.join(f"U+{ord(c):04X}" for c in char) for char in ci]
+
+def canonical_equivalents(ci: CanonicalIterator, ustring: Optional[str] = None) -> List[str]:
+    """List canonically equivalent strings for given canonical iterator instance.
+
+    Args:
+        ci (icu.CanonicalIterator): a CanonicalIterator instance.
+
+    Returns:
+        List[str]: list of all canonically equivalent forms of ustring.
+    """
+    if ustring:
+        ci.setSource(ustring)
+    return [' '.join(f"U+{ord(c):04X}" for c in char) for char in ci]
+
 def unicode_data(text: str) -> None:
     """Display Unicode data for each character in string.
 
-    Perform a character tokenisation on a string, and generate a table containing 
-    data on some Unicode character properties, including character codepoint and name, 
-    script character belongs to, 
+    Perform a character tokenisation on a string, and generate a table containing
+    data on some Unicode character properties, including character codepoint and name,
+    script character belongs to,
 
     Args:
         text (str): string to analyse.
@@ -123,10 +150,12 @@ def unicode_data(text: str) -> None:
                 unicodedataplus.bidirectional(c),
                 unicodedataplus.combining(c)])
     print(t)
+    print(canonical_equivalents_str(text))
+    return None
 
 udata = unicode_data
 
-def scan_bidi(text: str) -> Tuple[bool, bool, bool, bool, bool, Set[Optional[str]]]:
+def scan_bidi(text: str) -> Tuple[bool, bool, bool, bool, bool, Set[Optional[str]], bool]:
     """Analyse string for bidi support.
 
     The script returns a tuple indicating if sting contains bidirectional text and if it uses bidirectional formatting characters. Returns a tuple of:
@@ -136,21 +165,36 @@ def scan_bidi(text: str) -> Tuple[bool, bool, bool, bool, bool, Set[Optional[str
       * marks - indicates if bidi marks are in the string,
       * overrides - indicates if bidi embedding formatting characters are in string,
       * formatting_characters - a set of bidirectional formatting characters in string.
-    
+      * presentation_forms - indicates if presentation forms are in the string.
+
     Args:
         text (str): Text to analyse
 
     Returns:
-        Tuple[bool, bool, bool, bool, bool]: Summary of bidi support analysis
+        Tuple[bool, bool, bool, bool, bool, Set[Optional[str]], bool]: Summary of bidi support analysis
     """
     bidi_status: bool = is_bidi(text)
     isolates: bool = bool(regex.search('[\u2066\u2067\u2068]', text)) and bool(regex.search('\u2069', text))
     embeddings: bool = bool(regex.search('[\u202A\u202B]', text)) and bool(regex.search('\u202C', text))
     marks: bool = bool(regex.search('[\u200E\u200F]', text))
     overrides: bool = bool(regex.search('[\u202D\u202E]', text)) and bool(regex.search('\u202C', text))
-    #formatting_status: bool = bool(regex.search('[\u202a-\u202e\u2066-\u2069]', text))
     formating_characters: Set[Optional[str]] = set(regex.findall('[\u200e\u200f\u202a-\u202e\u2066-\u2069]', text))
     formating_characters = {f"U+{ord(c):04X} ({unicodedataplus.name(c,'-')})" for c in formating_characters if formating_characters is not None}
-    return (bidi_status, isolates, embeddings, marks, overrides, formating_characters)
+    presentation_forms = has_presentation_forms(text)
+    return (bidi_status, isolates, embeddings, marks, overrides, formating_characters, presentation_forms)
 
 scan = scan_bidi
+
+def codepoint_names(text: str) -> List[str]:
+    return [f"U+{ord(c):04X} ({unicodedataplus.name(c,'-')})" for c in text]
+
+cpnames = codepoint_names
+
+def print_list(in_list: List[str], sep: str="\n") -> None:
+    # print('\n'.join([ str(element) for element in in_list ]))
+    print(*in_list, sep=sep)
+
+printl = print_list
+
+# text = "ꗏ ꕘꕞꘋ ꔳꕩ"
+# printl(cpname(text))

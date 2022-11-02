@@ -18,6 +18,15 @@ from typing import Tuple, Pattern, Union
 # To Western Arabic digits
 #
 def convert_digits(text: str, sep: Tuple[str, str] = (",", ".")) -> Union[int, float, None]:
+    """To Western Arabic digits
+
+    Args:
+        text (str): _description_
+        sep (Tuple[str, str], optional): _description_. Defaults to (",", ".").
+
+    Returns:
+        Union[int, float, None]: integer or float equivalent of the string representation of th input number
+    """
     nd: Pattern[str] = regex.compile(r'^-?\p{Nd}[,.\u066B\u066C\u0020\u2009\u202F\p{Nd}]*$')
     tsep: str
     dsep: str
@@ -31,8 +40,6 @@ def convert_digits(text: str, sep: Tuple[str, str] = (",", ".")) -> Union[int, f
     return None
 
 def is_number(v, sep = (",", ".")):
-    # original = v
-    # n = regex.compile(r'^-?\p{N}[,.\u066B\u066C\u0020\u2009\u202F\p{N}]+$')
     nd = regex.compile(r'^-?\p{Nd}[,.\u066B\u066C\u0020\u2009\u202F\p{Nd}]+$')
     v = "".join(v.split())
     if isinstance(v, int) or isinstance(v, float):
@@ -43,6 +50,7 @@ def is_number(v, sep = (",", ".")):
     else:
         return False, type(v), v
 
+# type[Union[int, float, str]]
 #
 # convert_numeral_systems()
 #
