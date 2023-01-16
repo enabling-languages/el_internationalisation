@@ -197,3 +197,18 @@ printl = print_list
 
 # text = "ꗏ ꕘꕞꘋ ꔳꕩ"
 # printl(cpname(text))
+
+def isScript(text:str , script:str , common:bool=False) -> bool:
+    """Test if characters in string belong to specified script.
+
+    Args:
+        text (str): String to test.
+        script (str): Script to match against.
+        common (bool, optional): Include characters classified as Common in match. Defaults to False.
+
+    Returns:
+        bool: Result of string tested against specified script.
+    """
+    pattern_string = r'^[\p{' + script + r'}\p{Common}]+$' if common else r'^\p{' + script + r'}+$'
+    pattern = regex.compile(pattern_string)
+    return bool(regex.match(pattern, text))
