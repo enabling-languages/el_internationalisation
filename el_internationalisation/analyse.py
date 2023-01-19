@@ -5,7 +5,7 @@
 """
 
 import unicodedataplus, prettytable, regex
-from icu import CanonicalIterator
+import icu
 from .bidi import bidi_envelope, is_bidi
 from .ustrings import has_presentation_forms
 
@@ -110,7 +110,7 @@ def canonical_equivalents_str(ustring):
     Returns:
         List[str]: list of all canonically equivalent forms of ustring.
     """
-    ci =  CanonicalIterator(ustring)
+    ci =  icu.CanonicalIterator(ustring)
     return [' '.join(f"U+{ord(c):04X}" for c in char) for char in ci]
 
 def canonical_equivalents(ci, ustring = None):

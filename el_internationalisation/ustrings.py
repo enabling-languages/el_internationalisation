@@ -6,7 +6,9 @@
 #
 ##########################################################
 
-import regex, unicodedataplus, icu
+import regex
+import unicodedataplus
+import icu
 
 # from icu import icu.UnicodeString, icu.Locale, icu.Normalizer2, icu.UNormalizationMode2
 
@@ -48,31 +50,31 @@ def isalpha_unicode(text):
 #
 ####################
 
-def NFD(s, engine="ud"):
+def toNFD(s, engine="ud"):
     if engine.lower() == "icu":
         normalizer = icu.Normalizer2.getInstance(None, "nfc", icu.UNormalizationMode2.DECOMPOSE)
         return normalizer.normalize(s)
     return unicodedataplus.normalize('NFD', s)
 
-def NFKD(s, engine="ud"):
+def toNFKD(s, engine="ud"):
     if engine.lower() == "icu":
         normalizer = icu.Normalizer2.getInstance(None, "nfkc", icu.UNormalizationMode2.DECOMPOSE)
         return normalizer.normalize(s)
     return unicodedataplus.normalize('NFKD', s)
 
-def NFC(s, engine="ud"):
+def toNFC(s, engine="ud"):
     if engine.lower() == "icu":
         normalizer = icu.Normalizer2.getInstance(None, "nfc", icu.UNormalizationMode2.COMPOSE)
         return normalizer.normalize(s)
     return unicodedataplus.normalize('NFC', s)
 
-def NFKC(s, engine="ud"):
+def toNFKC(s, engine="ud"):
     if engine.lower() == "icu":
         normalizer = icu.Normalizer2.getInstance(None, "nfkc", icu.UNormalizationMode2.COMPOSE)
         return normalizer.normalize(s)
     return unicodedataplus.normalize('NFKC', s)
 
-def NFKC_CF(s, engine="ud"):
+def toNFKC_CF(s, engine="ud"):
     if engine.lower() == "icu":
         normalizer = icu.Normalizer2.getInstance(None, "nfkc_cf", icu.UNormalizationMode2.COMPOSE)
         return normalizer.normalize(s)
@@ -139,7 +141,7 @@ def normalise(nf, text):
     if nf == "NFM":
         return marc21_normalise(text)
     elif nf == "NFKC_CF":
-        return NFKC_CF(text)
+        return toNFKC_CF(text)
     return unicodedataplus.normalize(nf, text)
 
 ####################
