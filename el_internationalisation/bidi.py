@@ -73,3 +73,4 @@ def strip_bidi(text):
         str: _description_
     """
     return regex.sub('[\u202a-\u202e\u2066-\u2069]', '', text)
+

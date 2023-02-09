@@ -50,41 +50,48 @@ def isalpha_unicode(text):
 #
 ####################
 
-def toNFD(s, engine="ud"):
-    if engine.lower() == "icu":
-        normalizer = icu.Normalizer2.getInstance(None, "nfc", icu.UNormalizationMode2.DECOMPOSE)
-        return normalizer.normalize(s)
-    return unicodedataplus.normalize('NFD', s)
+def toNFD(text, use_icu=False):
+    if use_icu:
+        normaliser = icu.Normalizer2.getNFDInstance()
+        return normaliser.normalize(text)
+    return unicodedataplus.normalize("NFD", text)
+NFD = toNFD
 
-def toNFKD(s, engine="ud"):
-    if engine.lower() == "icu":
-        normalizer = icu.Normalizer2.getInstance(None, "nfkc", icu.UNormalizationMode2.DECOMPOSE)
-        return normalizer.normalize(s)
-    return unicodedataplus.normalize('NFKD', s)
+def toNFKD(text, use_icu=False):
+    if use_icu:
+        normaliser = icu.Normalizer2.getNFKDInstance()
+        return normaliser.normalize(text)
+    return unicodedataplus.normalize("NFKD", text)
+NFKD = toNFKD
 
-def toNFC(s, engine="ud"):
-    if engine.lower() == "icu":
-        normalizer = icu.Normalizer2.getInstance(None, "nfc", icu.UNormalizationMode2.COMPOSE)
-        return normalizer.normalize(s)
-    return unicodedataplus.normalize('NFC', s)
+def toNFC(text, use_icu=False):
+    if use_icu:
+        normaliser = icu.Normalizer2.getNFCInstance()
+        return normaliser.normalize(text)
+    return unicodedataplus.normalize("NFC", text)
+NFC = toNFC
 
-def toNFKC(s, engine="ud"):
-    if engine.lower() == "icu":
-        normalizer = icu.Normalizer2.getInstance(None, "nfkc", icu.UNormalizationMode2.COMPOSE)
-        return normalizer.normalize(s)
-    return unicodedataplus.normalize('NFKC', s)
+def toNFKC(text, use_icu=False):
+    if use_icu:
+        normaliser = icu.Normalizer2.getNFKCInstance()
+        return normaliser.normalize(text)
+    return unicodedataplus.normalize("NFKC", text)
+NFKC = toNFKC
 
-def toNFKC_CF(s, engine="ud"):
-    if engine.lower() == "icu":
-        normalizer = icu.Normalizer2.getInstance(None, "nfkc_cf", icu.UNormalizationMode2.COMPOSE)
-        return normalizer.normalize(s)
-    return NFKC_Casefold(s)
+def toNFKC_Casefold(text, use_icu=False):
+    if use_icu:
+        normaliser = icu.Normalizer2.getNFKCCasefoldInstance()
+        return normaliser.normalize(text)
+    pattern = regex.compile(r"\p{Default_Ignorable_Code_Point=Yes}")
+    text = regex.sub(pattern, '', text)
+    return unicodedataplus.normalize("NFC", unicodedataplus.normalize('NFKC', text).casefold())
+NFKC_CF = toNFKC_Casefold
 
-# Normalise to specified Unicode Normalisation Form, defaulting to NFC.
-# nf = NFC | NFKC | NFKC_CF | NFD | NFKD | NFM
-# NFM: Normalise strings according to MARC21 Character repetoire requirements
-# TODO:
-#    * Add support for NFKC_CF
+def toCasefold(text, use_icu=False):
+    if use_icu:
+        return str(icu.UnicodeString(text).foldCase())
+    return  text.casefold()
+fold_case = toCasefold
 
 # Replace values matching dictionary keys with values
 def replace_all(text, pattern_dict):
@@ -92,9 +99,13 @@ def replace_all(text, pattern_dict):
         text = text.replace(key, str(pattern_dict[key]))
     return text
 
+# Normalise to specified Unicode Normalisation Form, defaulting to NFC.
+# nf = NFC | NFKC | NFKC_CF | NFD | NFKD | NFM21
+# NFM21: Normalise strings according to MARC21 Character repetoire requirements
+
 def normalise(nf, text):
     nf = nf.upper()
-    if nf not in ["NFC", "NFKC", "NFKC_CF", "NFD", "NFKD", "NFM"]:
+    if nf not in ["NFC", "NFKC", "NFKC_CF", "NFD", "NFKD", "NFM21"]:
         nf="NFC"
     # MNF (Marc Normalisation Form)
     def marc21_normalise(text):
@@ -138,10 +149,10 @@ def normalise(nf, text):
         if bool(regex.search(r'[\u0627\u0648\u064A]\u0654|\u0627\u0655|\u0627\u0653', text)):
             text = replace_all(text, arab_rep)
         return text
-    if nf == "NFM":
+    if nf == "NFM21":
         return marc21_normalise(text)
     elif nf == "NFKC_CF":
-        return toNFKC_CF(text)
+        return toNFKC_Casefold(text)
     return unicodedataplus.normalize(nf, text)
 
 ####################
@@ -150,20 +161,25 @@ def normalise(nf, text):
 #
 ####################
 
-def caseless_match(x, y):
-  return x.casefold() == y.casefold()
+# Caseless matching
+#   toCasefold(X) = toCasefold(Y)
+def caseless_match(x, y, use_icu=False):
+    return toCasefold(x, use_icu=use_icu) == toCasefold(y, use_icu=use_icu)
 
-def canonical_caseless_match(x, y):
-  return unicodedataplus.normalize("NFD", unicodedataplus.normalize("NFD", x).casefold()) == unicodedataplus.normalize("NFD", unicodedataplus.normalize("NFD", y).casefold())
+# Canonical caseless matching
+#   NFD(toCasefold(NFD(X))) = NFD(toCasefold(NFD(Y)))
+def canonical_caseless_match_icu(x, y, use_icu=False):
+    return toNFD(toCasefold(toNFD(x, use_icu=use_icu), use_icu=use_icu), use_icu=use_icu) == toNFD(toCasefold(toNFD(y, use_icu=use_icu), use_icu=use_icu), use_icu=use_icu)
 
-def compatibility_caseless_match(x, y):
-  return unicodedataplus.normalize("NFKD", unicodedataplus.normalize("NFKD", unicodedataplus.normalize("NFD", x).casefold()).casefold()) == unicodedataplus.normalize("NFKD", unicodedataplus.normalize("NFKD", unicodedataplusnormalize("NFD", y).casefold()).casefold())
+# Compatibility caseless match
+#   NFKD(toCasefold(NFKD(toCasefold(NFD(X))))) = NFKD(toCasefold(NFKD(toCasefold(NFD(Y)))))
+def compatibility_caseless_match(x, y, use_icu=False):
+    return toNFKD(toCasefold(toNFKD(toCasefold(toNFD(x, use_icu=use_icu), use_icu=use_icu), use_icu=use_icu), use_icu=use_icu), use_icu=use_icu) == toNFKD(toCasefold(toNFKD(toCasefold(toNFD(y, use_icu=use_icu), use_icu=use_icu), use_icu=use_icu), use_icu=use_icu), use_icu=use_icu)
 
-def NFKC_Casefold(s):
-  return unicodedataplus.normalize("NFC", unicodedataplus.normalize('NFKC', s).casefold())
-
-def identifier_caseless_match(x, y):
-  return NFKC_Casefold(unicodedataplus.normalize("NFD", x)) == NFKC_Casefold(unicodedataplus.normalize("NFD", y))
+# Identifier caseless match for a string Y if and only if: 
+#   toNFKC_Casefold(NFD(X)) = toNFKC_Casefold(NFD(Y))`
+def identifier_caseless_match(x, y, use_icu=False):
+    return toNFKC_Casefold(toNFD(x, use_icu=use_icu)) == toNFKC_Casefold(toNFD(y, use_icu=use_icu))
 
 
 ####################
@@ -206,15 +222,26 @@ def buyukharfyap(s):
 # s is a string, l is an ICU Locale object (defaulting to CLDR Root Locale)
 #
 ####################
+
+def toLower(s, use_icu=True, loc=icu.Locale.getRoot()):
+    if not use_icu:
+        return s.lower()
+    return str(icu.UnicodeString(s).toLower(loc))
+
+def toUpper(s, use_icu=True, loc=icu.Locale.getRoot()):
+    if not use_icu:
+        return s.upper()
+    return str(icu.UnicodeString(s).toUpper(loc))
+
+def toTitle(s, use_icu=True, loc=icu.Locale.getRoot()):
+    if not use_icu:
+        return s.title()
+    return str(icu.UnicodeString(s).toTitle(loc))
+
 TURKIC = ["tr", "az"]
-def toLower(s, engine="icu", lang="und"):
-    return str(icu.UnicodeString(s).toLower(l))
-def toUpper(s, engine="icu", l=icu.Locale.getRoot()):
-    return str(icu.UnicodeString(s).toUpper(l))
-def toTitle(s, engine="icu", l=icu.Locale.getRoot()):
-    return str(icu.UnicodeString(s).toTitle(l))
 
 def toSentence(s, engine="core", lang="und"):
+    # loc = icu.Locale.forLanguageTag(lang)
     lang = regex.split('[_\-]', lang.lower())[0]
     result = ""
     if (engine == "core") and (lang in TURKIC):
@@ -229,6 +256,20 @@ def toSentence(s, engine="core", lang="und"):
     else:
         result = s
     return result
+
+# New verion of toSentence
+# def toSentence(s, lang="und", use_icu=False):
+#     lang_subtag = regex.split('[_\-]', lang.lower())[0]
+#     result = ""
+#     if not use_icu and lang_subtag in TURKIC:
+#         return buyukharfyap(s[0]) + kucukharfyap(s[1:])
+#     elif not use_icu and lang_subtag in TURKIC:
+#         return s.capitalize()
+#     if lang_subtag not in list(icu.Locale.getAvailableLocales().keys()):
+#         lang = "und"
+#     loc = icu.Locale.getRoot() if lang == "und" else icu.Locale.forLanguageTag(lang)
+#     result = str(icu.UnicodeString(s[0]).toUpper(loc)) + str(icu.UnicodeString(s[1:]).toLower(loc))
+#     return result
 
 def foldCase(s, engine="core"):
     result = ""
