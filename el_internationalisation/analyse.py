@@ -8,6 +8,7 @@ import unicodedataplus, prettytable, regex
 import icu
 from .bidi import bidi_envelope, is_bidi
 from .ustrings import has_presentation_forms
+from collections import Counter
 
 def splitString(text):
     """Typecast string to a list, splitting sting into a list of characters.
@@ -184,6 +185,21 @@ def scan_bidi(text):
 
 scan = scan_bidi
 
+def first_strong(s):
+    properties = ['ltr' if v == "L" else 'rtl' if v in ["AL", "R"] else "-" for v in [unicodedataplus.bidirectional(c) for c in list(s)]]
+    for value in properties:
+        if value == "ltr":
+            return "ltr"
+        elif value == "rtl":
+            return "rtl"
+    return None
+
+def dominant_strong_direction(s):
+    count = Counter([unicodedataplus.bidirectional(c) for c in list(s)])
+    rtl_count = count['R'] + count['AL'] + count['RLE'] + count["RLI"]
+    ltr_count = count['L'] + count['LRE'] + count["LRI"] 
+    return "rtl" if rtl_count > ltr_count else "ltr"
+
 def codepoint_names(text):
     return [f"U+{ord(c):04X} ({unicodedataplus.name(c,'-')})" for c in text]
 
@@ -212,3 +228,11 @@ def isScript(text:str , script:str , common:bool=False) -> bool:
     pattern_string = r'^[\p{' + script + r'}\p{Common}]+$' if common else r'^\p{' + script + r'}+$'
     pattern = regex.compile(pattern_string)
     return bool(regex.match(pattern, text))
+
+def dominant_script(text, mode="individual"):
+    count = Counter([unicodedataplus.script(char) for char in text])
+    total = sum(count.values())
+    if mode == "all":
+        return [(i, count[i]/total) for i in list(count)]
+    dominant = (count.most_common(2)[0][0], count.most_common(2)[0][1]/total) if count.most_common(2)[0][0] != "Common" else (count.most_common(2)[1][0],  count.most_common(2)[1][1]/total)
+    return dominant

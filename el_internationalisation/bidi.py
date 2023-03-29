@@ -29,7 +29,7 @@ def bidi_envelope(text, dir = "auto", mode = "isolate"):
     Args:
         text (str): String to wrap.
         dir (str, optional): Primary text direction of string: "ltr", "rtl" or "auto". Defaults to auto if mode is "isolate". Defaults to "rtl" if mode is "embedded" or "override".
-        mode (str, optional): Bidi formatting to be applied: isolate, embedded, override. Defaults to "isolate"
+        mode (str, optional): Bidi formatting to be applied: isolate, embed, override. Defaults to "isolate"
 
     Returns:
         str: initial string wrapped in bidirectional formatting characters.
@@ -43,7 +43,7 @@ def bidi_envelope(text, dir = "auto", mode = "isolate"):
             text = "\u2066" + text + "\u2069"
         elif dir == "auto":
             text = "\u2068" + text + "\u2069"
-    elif mode == "embedding":
+    elif mode == "embed":
         if dir == "auto":
             dir = "rtl"
         if dir == "rtl":
@@ -73,4 +73,3 @@ def strip_bidi(text):
         str: _description_
     """
     return regex.sub('[\u202a-\u202e\u2066-\u2069]', '', text)
-

@@ -45,6 +45,39 @@ def isalpha_unicode(text):
 
 ####################
 #
+# Word forming characters
+#   Test for wether all characters in string consit of word forming characters.
+#   Definition is based on Unicode definition for the regular expresison metacharacter \w
+#   Optional support for hyphens, apostophe, interpunct.
+#
+####################
+
+def is_word_forming(text: str, extended: bool = False) -> bool:
+    """Test whether a string contains only word forming characters.
+
+    Uses the definition in Unicode Regular Expressions UTD #18:
+    [\p{alpha}\p{gc=Mark}\p{digit}\p{gc=Connector_Punctuation}\p{Join_Control}]
+
+    Optional support for hyphens, apostophe, interpunct.
+
+    Args:
+        text (str): string to test.
+        extended (bool): Flag to specify whether word internal punctuation is considered word forming.
+
+    Returns:
+        bool: result, either True or False.
+    """
+    pattern = "\p{alpha}\p{gc=Mark}\p{digit}\p{gc=Connector_Punctuation}\p{Join_Control}"
+    if len(text) == 1:
+        extended = False
+    if extended:
+        pattern = "\p{alpha}\p{gc=Mark}\p{digit}\p{gc=Connector_Punctuation}\p{Join_Control}\u002D\u002E\u00B7"
+    if len(text) == 1:
+        return bool(regex.match(f'[{pattern}]', text))
+    return bool(regex.match(f'^[{pattern}]*$', text))
+
+####################
+#
 # Unicode normalisation
 #   Simple wrappers for Unicode normalisation
 #
@@ -240,6 +273,10 @@ def toTitle(s, use_icu=True, loc=icu.Locale.getRoot()):
 
 TURKIC = ["tr", "az"]
 
+#
+# TODO:
+#   * migrate form engine flag to use_icu flag for consistency
+#
 def toSentence(s, engine="core", lang="und"):
     # loc = icu.Locale.forLanguageTag(lang)
     lang = regex.split('[_\-]', lang.lower())[0]
@@ -263,7 +300,7 @@ def toSentence(s, engine="core", lang="und"):
 #     result = ""
 #     if not use_icu and lang_subtag in TURKIC:
 #         return buyukharfyap(s[0]) + kucukharfyap(s[1:])
-#     elif not use_icu and lang_subtag in TURKIC:
+#     elif not use_icu and lang_subtag not in TURKIC:
 #         return s.capitalize()
 #     if lang_subtag not in list(icu.Locale.getAvailableLocales().keys()):
 #         lang = "und"
@@ -271,6 +308,10 @@ def toSentence(s, engine="core", lang="und"):
 #     result = str(icu.UnicodeString(s[0]).toUpper(loc)) + str(icu.UnicodeString(s[1:]).toLower(loc))
 #     return result
 
+#
+# TODO:
+#   * migrate form engine flag to use_icu flag for consistency
+#
 def foldCase(s, engine="core"):
     result = ""
     if engine == "core":
