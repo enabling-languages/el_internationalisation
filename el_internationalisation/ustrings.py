@@ -184,7 +184,7 @@ def normalise(nf, text):
         return text
     if nf == "NFM21":
         return marc21_normalise(text)
-    elif nf == "NFKC_CF":
+    if nf == "NFKC_CF":
         return toNFKC_Casefold(text)
     return unicodedataplus.normalize(nf, text)
 
