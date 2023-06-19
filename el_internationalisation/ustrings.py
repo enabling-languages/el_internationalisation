@@ -136,6 +136,16 @@ def replace_all(text, pattern_dict):
 # nf = NFC | NFKC | NFKC_CF | NFD | NFKD | NFM21
 # NFM21: Normalise strings according to MARC21 Character repetoire requirements
 
+def is_hangul(s):
+    return bool(regex.search(r'(^\p{Hangul}+$)', s))
+def normalise_hangul(s, normalisation_form = "NFC"):
+    if is_hangul(s):
+        return unicodedataplus.normalize(normalisation_form, s)
+    else:
+        return s
+def marc_hangul(text):
+    return "".join(list(map(normalise_hangul, regex.split(r'(\P{Hangul})', text))))
+
 def normalise(nf, text):
     nf = nf.upper()
     if nf not in ["NFC", "NFKC", "NFKC_CF", "NFD", "NFKD", "NFM21"]:
@@ -181,6 +191,8 @@ def normalise(nf, text):
             text = replace_all(text, cyrl_rep)
         if bool(regex.search(r'[\u0627\u0648\u064A]\u0654|\u0627\u0655|\u0627\u0653', text)):
             text = replace_all(text, arab_rep)
+        if bool(regex.search(r'\p{Hangul}', text)):
+            text = marc_hangul(text)
         return text
     if nf == "NFM21":
         return marc21_normalise(text)
