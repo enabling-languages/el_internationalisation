@@ -1,6 +1,7 @@
 import regex
 import html
 from .ustrings import normalise
+from lxml import etree
 from typing import Union
 
 # Languages to normalise : ISO-639-1 and ISO-639-2/B language codes.
@@ -164,3 +165,22 @@ def repair_smp(text: str, script: str) -> str:
             return text
     except KeyError:
         return text
+
+##############################
+#
+# XML-XSLT Transformation
+#
+##############################
+#
+#    xmlfile is either a XML file or a BytesIO stream of XML. See intl_bib_clean.py.
+#
+
+def xsl_transformation(xslfile, xmlfile = None, xmlstring = None, params={}):
+    xslt_tree = etree.parse(xslfile)
+    transform = etree.XSLT(xslt_tree)
+    xml_contents = xmlstring
+    if not xml_contents:
+        if xmlfile:
+            xml_contents = etree.parse(xmlfile)
+    result = transform(xml_contents, **params)
+    return result
