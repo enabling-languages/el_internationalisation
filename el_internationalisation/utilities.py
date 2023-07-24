@@ -1,3 +1,5 @@
+from typing import List
+
 def list_to_string(items, sep = ', ', drop_bool = True):
     """Convert list to string
 
@@ -76,3 +78,15 @@ def search_dict_keys(dictionary, searchString):
         list: _description_
     """
     return dictionary[searchString] if dictionary.get(searchString) != None else None
+
+def available_methods(clss: str, search_string: str | None = None, mode: str = "cli") -> List[str] | None:
+    mode = "script" if mode.lower() != "cli" else "cli"
+    methods: List[str] = []
+    if search_string:
+        methods = [item for item in list(dir(clss)) if search_string.lower() in item.lower()]
+    else:
+        methods = [item for item in list(dir(clss)) if not item.startswith("_")]
+    if mode == "cli":
+        print(methods)
+        return None
+    return methods
