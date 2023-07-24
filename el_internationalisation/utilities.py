@@ -80,6 +80,16 @@ def search_dict_keys(dictionary, searchString):
     return dictionary[searchString] if dictionary.get(searchString) != None else None
 
 def available_methods(clss: str, search_string: str | None = None, mode: str = "cli") -> List[str] | None:
+    """List class methods for specified class that match a search string.
+
+    Args:
+        clss (str): Class name
+        search_string (str | None, optional): substring to filter class methods. Defaults to None.
+        mode (str, optional): If output is to terminal or is returned to calling function. Defaults to "cli".
+
+    Returns:
+        List[str] | None: List of methods available in a class that match query.
+    """
     mode = "script" if mode.lower() != "cli" else "cli"
     methods: List[str] = []
     if search_string:
