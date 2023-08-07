@@ -351,7 +351,7 @@ class ngraphs:
     def most_common(self, value=None):
         if value and value != self.count:
             self._count = value
-        return dict(list([self.data].items())[0: self.count])
+        return dict(list(self.data.items())[0: self.count])
 
     def to_list(self):
         # Convert data keys to list, i.e. list of ngraths
