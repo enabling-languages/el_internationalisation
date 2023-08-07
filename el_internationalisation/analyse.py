@@ -236,3 +236,140 @@ def dominant_script(text, mode="individual"):
         return [(i, count[i]/total) for i in list(count)]
     dominant = (count.most_common(2)[0][0], count.most_common(2)[0][1]/total) if count.most_common(2)[0][0] != "Common" else (count.most_common(2)[1][0],  count.most_common(2)[1][1]/total)
     return dominant
+
+class ngraphs:
+    """Calculate ngraph occurrences for target string
+
+    Attributes
+    ----------
+    text: str
+        A plain text string to be analysed. Specific to ngraph instance.
+    size: int
+        Size of ngraph. 2 = digraph, 3 = character, etc. Defaults to 2
+    filter: bool
+        Filter out punctuation and whitespace, so that these characters do not appear
+        in the ngraphs. Defaults to False
+    count: int
+    graphemes: bool
+        Whether ngraphs are calculated on basis of number of characters, or number of graphemes.
+        Defaults to False.
+
+
+    Methods
+    -------
+    most_common()
+        Dictionary containing the _count_ most frequent ngraphs. Returns dictionary of
+        ngraphs, count of occurrence of ngraphs.
+
+    ngraph_list()
+        Return list of ngraphs generated from _text_.
+    """
+
+    def __init__(self, text, size=2, filter=False, count=10, graphemes=False):
+        self._text = text
+        self.size = size
+        self.filter = filter
+        self.count = count
+        self.graphemes = graphemes
+        self.data
+
+    @property
+    def data(self):
+        self._data = self._frequency()
+        return self._data
+
+    @property
+    def text(self):
+        return self._text
+
+    @text.setter
+    def text(self, value):
+        # self._text = value
+        raise Exception("Cannot set text. Require new instance of ngraphs.")
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, value):
+        self._size = value
+
+    @property
+    def filter(self):
+        return self._filter
+
+    @filter.setter
+    def filter(self, value):
+        self._filter = value
+
+    @property
+    def grapheme(self):
+        return self._grapheme
+
+    @grapheme.setter
+    def grapheme(self):
+        return self._grapheme
+
+    @grapheme.setter
+    def grapheme(self, value):
+        # self._grapheme = value
+        raise Exception("Cannot set grapheme. Require new instance of ngraphs.")
+
+    @property
+    def count(self):
+        return self._count
+
+    @count.setter
+    def count(self, value):
+        self._count = value
+
+    def __str__(self):
+        return f"size: {self.size} , filter: {self.filter} , count: {self.count}"
+
+    def _frequency(self):
+        # Identify ngraphs in text and count number of occurrences of each ngraph
+        pattern = f'[^\p\u007bP\u007d\p\u007bZ\u007d]\u007b{self.size}\u007d'
+        r = {}
+        if self.graphemes:
+            gr = regex.findall(r'\X', self.text)
+            c = {"".join(i for i in k): v for k, v in dict(Counter(tuple(gr)[idx : idx + 2] for idx in range(len(gr) - 1))).items()}
+        else:
+            c = Counter(self.text[idx : idx + self.size] for idx in range(len(self.text) - 1))
+        r = {x: count for x, count in c.items() if regex.match(pattern, x)} if self.filter else dict(c)
+        r = dict(sorted(r.items(), key=lambda x:x[1], reverse=True))
+        return r
+        # return {"size":self.size, "filter":self.filter ,"ngraths": r}
+
+    # def _frequency_percentage(self, value):
+    #     pdata = {k: round(v*100/self.total(), 6) for k,v in self.data.items()}
+    #     return None
+
+    # def _percentage(self, value):
+    #    return round(value*100/self.total(), 4)
+
+    def most_common(self, value=None):
+        if value and value != self.count:
+            self._count = value
+        return dict(list([self.data].items())[0: self.count])
+
+    def to_list(self):
+        # Convert data keys to list, i.e. list of ngraths
+        return [i for i in self.data.keys()]
+
+    def to_tuples(self):
+        # Convert data dictionary to a list of tuples.
+        # return [(k, v, self._percentage(v)) for k, v in self.data.items()]
+        return [(k, v) for k, v in self.data.items()]
+
+    def ngraph_length(self):
+        # Number of unique ngraphs in data
+        return len(self.data)
+
+    def text_length(self):
+        # Length (number of characters) of text
+        return len(self.text)
+
+    def total(self):
+        # Total number of ngraphs available in string
+        return sum(self.data.values())

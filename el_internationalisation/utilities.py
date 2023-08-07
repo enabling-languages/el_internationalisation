@@ -1,4 +1,6 @@
 from typing import List
+import icu
+from .ustrings import gr
 
 def list_to_string(items, sep = ', ', drop_bool = True):
     """Convert list to string
@@ -100,3 +102,48 @@ def available_methods(clss: str, search_string: str | None = None, mode: str = "
         print(methods)
         return None
     return methods
+
+def character_requirements(languages: List[str], ngraphs: bool = False, keep_graphemes: bool = True, auxiliary: bool = False, basic_latin: bool = True) -> List[str]:
+    """Generate a list of characters required for a language or locale.
+
+    Uses CLDR locale data to identify characters required for a language or locale.
+    Uses exemplar characters, but can optionally include auxiliary characters.
+
+    Args:
+        languages (List[str]): A list of languages or locales.
+        ngraphs (bool, optional): Include (True) or segment(false) letters that are n-graphs. Defaults to False.
+        auxiliary (bool, optional): Include exemplar characters. Defaults to False.
+        basic_latin (bool, optional): Include (True) or exclude (False) letters from the Basic Latin block. Defaults to True.
+
+    Returns:
+        List[str]: _description_
+    """
+    collator = icu.Collator.createInstance(icu.Locale.getRoot())
+    letters = []
+    for language in languages:
+        ld = icu.LocaleData(language)
+        us = ld.getExemplarSet(icu.ULocaleDataExemplarSetType.ES_STANDARD)
+        if auxiliary:
+            us.addAll(ld.getExemplarSet(icu.ULocaleDataExemplarSetType.ES_AUXILIARY))
+        if not basic_latin:
+            us.removeAll(icu.UnicodeSet('\p{Ascii}'))
+        letters = [*letters, *us]
+    if not ngraphs:
+        if keep_graphemes:
+            letters = gr("".join(letters))
+        else:
+            letters = list("".join(letters))
+    letters = sorted(list(set(letters)), key=collator.getSortKey)
+    return letters
+
+import wcwidth
+def len_char_terminal(phrase):
+    return tuple(map(wcwidth.wcwidth, phrase))
+def len_string_terminal(phrase):
+    return wcwidth.wcswidth(phrase)
+def max_len_terminal(phrase_list):
+    res = max(phrase_list, key=len_string_terminal)
+    return len_string_terminal(res)
+
+max_width = max_len_terminal
+
