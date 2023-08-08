@@ -333,7 +333,7 @@ class ngraphs:
         r = {}
         if self.graphemes:
             gr = regex.findall(r'\X', self.text)
-            c = {"".join(i for i in k): v for k, v in dict(Counter(tuple(gr)[idx : idx + 2] for idx in range(len(gr) - 1))).items()}
+            c = {"".join(i for i in k): v for k, v in dict(Counter(tuple(gr)[idx : idx + self.size] for idx in range(len(gr) - 1))).items()}
         else:
             c = Counter(self.text[idx : idx + self.size] for idx in range(len(self.text) - 1))
         r = {x: count for x, count in c.items() if regex.match(pattern, x)} if self.filter else dict(c)
