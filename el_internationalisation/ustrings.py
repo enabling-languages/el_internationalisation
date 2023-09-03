@@ -9,6 +9,7 @@
 import regex
 import unicodedataplus
 import icu
+from collections import UserString
 
 # from icu import icu.UnicodeString, icu.Locale, icu.Normalizer2, icu.UNormalizationMode2
 
@@ -344,3 +345,79 @@ def foldCase(s, engine="core"):
 def graphemes(text):
     return regex.findall(r'\X',text)
 gr = graphemes
+
+
+
+####################
+#
+# ustring:
+#   Class for unicode compliant string operations.
+#
+####################
+class ustring(UserString):
+    def __init__(self, string = ''):
+        self._nform = None
+        # self._locale = None
+        self._unicodestring = icu.UnicodeString(string)
+        self._graphemes = regex.findall(r'\X',string)
+        super().__init__(string)
+
+    def available_locales(self):
+        return list(icu.Locale.getAvailableLocales().keys())
+
+    def available_transforms(self):
+        return list(icu.Transliterator.getAvailableIDs())
+
+    def casefold(self):
+        return str(icu.UnicodeString(self.data).foldCase())
+
+    def codepoints(self, prefix = False, extended = False):
+        if extended:
+            return ' '.join(f"U+{ord(c):04X} ({c})" for c in self.data) if prefix else ' '.join(f"{ord(c):04X} ({c})" for c in self.data)
+        else:
+            # return ' '.join('U+{:04X}'.format(ord(c)) for c in text) if prefix else ' '.join('{:04X}'.format(ord(c)) for c in text)
+            return ' '.join(f"U+{ord(c):04X}" for c in self.data) if prefix else ' '.join(f"{ord(c):04X}" for c in self.data)
+
+    def fullwidth(self):
+        return icu.Transliterator.createInstance('Halfwidth-Fullwidth').transliterate(self.data)
+
+    def graphemes(self):
+        return self._graphemes
+
+    def grapheme_length(self):
+        return len(self._graphemes)
+
+    def halfwidth(self):
+        return icu.Transliterator.createInstance('Fullwidth-Halfwidth').transliterate(self.data)
+
+    def lower(self, locale = None):
+        return str(icu.UnicodeString(self.data).toLower(icu.Locale(locale))) if locale else str(icu.UnicodeString(self.data).toLower())
+
+    def normalize(self, nform):
+        self._nform = nform.upper()
+        if self._nform == "NFC":
+            self.data = icu.Normalizer2.getNFCInstance().normalize(self.data)
+        elif self._nform == "NFD":
+             self.data = icu.Normalizer2.getNFDInstance().normalize(self.data)
+        self._unicodestring = icu.UnicodeString(self.data)
+        self._graphemes = regex.findall(r'\X',self.data)
+
+    def title(self, locale = None):
+        return str(icu.UnicodeString(self.data).toTitle(icu.Locale(locale))) if locale else str(icu.UnicodeString(self.data).toTitle())
+
+    def transform(self, id_label, rules = None, reverse = False):
+        direction = icu.UTransDirection.REVERSE if reverse else icu.UTransDirection.FORWARD
+        if id_label is None and rules is None:
+            return self.data
+        if id_label in list(icu.Transliterator.getAvailableIDs()):
+            return icu.Transliterator.createInstance(id_label, direction).transliterate(self.data)
+        if rules and id_label is None:
+            return icu.Transliterator.createFromRules("custom", rules, direction).transliterate(self.data)
+        else:
+            return self.data
+
+    def unicodestring(self):
+        return self._unicodestring
+
+    def upper(self, locale = None):
+        return str(icu.UnicodeString(self.data).toUpper(icu.Locale(locale))) if locale else str(icu.UnicodeString(self.data).toUpper())
