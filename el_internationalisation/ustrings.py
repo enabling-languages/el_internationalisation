@@ -357,7 +357,6 @@ gr = graphemes
 class ustring(UserString):
     def __init__(self, string = ''):
         self._nform = None
-        # self._locale = None
         self._unicodestring = icu.UnicodeString(string)
         self._graphemes = regex.findall(r'\X',string)
         super().__init__(string)
@@ -375,7 +374,6 @@ class ustring(UserString):
         if extended:
             return ' '.join(f"U+{ord(c):04X} ({c})" for c in self.data) if prefix else ' '.join(f"{ord(c):04X} ({c})" for c in self.data)
         else:
-            # return ' '.join('U+{:04X}'.format(ord(c)) for c in text) if prefix else ' '.join('{:04X}'.format(ord(c)) for c in text)
             return ' '.join(f"U+{ord(c):04X}" for c in self.data) if prefix else ' '.join(f"{ord(c):04X}" for c in self.data)
 
     def fullwidth(self):
