@@ -354,12 +354,35 @@ gr = graphemes
 #   Class for unicode compliant string operations.
 #
 ####################
-class ustring(UserString):
-    def __init__(self, string = ''):
+class uString(UserString):
+    def __init__(self, string):
+        self._initial = string
         self._nform = None
         self._unicodestring = icu.UnicodeString(string)
-        self._graphemes = regex.findall(r'\X',string)
+        self._graphemes = graphemes(string)
         super().__init__(string)
+
+    def __str__(self):
+        return self.data
+
+    def __repr__(self):
+        return f'uString({self.data}, {self._initial}, {self._nform})'
+
+    def _set_parameters(self):
+        self._unicodestring = icu.UnicodeString(self.data)
+        # self._graphemes = regex.findall(r'\X', self.data)
+        self._graphemes = graphemes(self.data)
+
+    def _set_locale(self, locale = "default"):
+        match locale:
+            case "root":
+                return icu.Locale.getRoot()
+            case "und":
+                return icu.Locale.getRoot()
+            case "default":
+                return icu.Locale.getDefault()
+            case _  :
+                return icu.Locale(locale)
 
     def available_locales(self):
         return list(icu.Locale.getAvailableLocales().keys())
@@ -368,7 +391,10 @@ class ustring(UserString):
         return list(icu.Transliterator.getAvailableIDs())
 
     def casefold(self):
-        return str(icu.UnicodeString(self.data).foldCase())
+        # return str(icu.UnicodeString(self.data).foldCase())
+        self.data = str(icu.UnicodeString(self.data).foldCase())
+        self._set_parameters()
+        return self
 
     def codepoints(self, prefix = False, extended = False):
         if extended:
@@ -377,7 +403,10 @@ class ustring(UserString):
             return ' '.join(f"U+{ord(c):04X}" for c in self.data) if prefix else ' '.join(f"{ord(c):04X}" for c in self.data)
 
     def fullwidth(self):
-        return icu.Transliterator.createInstance('Halfwidth-Fullwidth').transliterate(self.data)
+        # return icu.Transliterator.createInstance('Halfwidth-Fullwidth').transliterate(self.data)
+        self.data = icu.Transliterator.createInstance('Halfwidth-Fullwidth').transliterate(self.data)
+        self._set_parameters()
+        return self
 
     def graphemes(self):
         return self._graphemes
@@ -386,10 +415,17 @@ class ustring(UserString):
         return len(self._graphemes)
 
     def halfwidth(self):
-        return icu.Transliterator.createInstance('Fullwidth-Halfwidth').transliterate(self.data)
+        # return icu.Transliterator.createInstance('Fullwidth-Halfwidth').transliterate(self.data)
+        self.data = icu.Transliterator.createInstance('Fullwidth-Halfwidth').transliterate(self.data)
+        self._set_parameters()
+        return self
 
-    def lower(self, locale = None):
-        return str(icu.UnicodeString(self.data).toLower(icu.Locale(locale))) if locale else str(icu.UnicodeString(self.data).toLower())
+    def lower(self, locale = "default"):
+        # return str(icu.UnicodeString(self.data).toLower(icu.Locale(locale))) if locale else str(icu.UnicodeString(self.data).toLower())
+        loc = self._set_locale(locale)
+        self.data = str(icu.UnicodeString(self.data).toLower(loc))
+        self._set_parameters()
+        return self
 
     def normalize(self, nform):
         self._nform = nform.upper()
@@ -399,23 +435,40 @@ class ustring(UserString):
              self.data = icu.Normalizer2.getNFDInstance().normalize(self.data)
         self._unicodestring = icu.UnicodeString(self.data)
         self._graphemes = regex.findall(r'\X',self.data)
+        return self
 
-    def title(self, locale = None):
-        return str(icu.UnicodeString(self.data).toTitle(icu.Locale(locale))) if locale else str(icu.UnicodeString(self.data).toTitle())
+    def reset(self):
+        self.data = self._initial
+        self._set_parameters()
+
+    def title(self, locale = "default"):
+        loc = self._set_locale(locale)
+        self.data = str(icu.UnicodeString(self.data).toTitle(loc))
+        self._set_parameters()
+        return self
+    
+    def get_initial(self):
+        return self._initial
+
+    def get_string(self):
+        return self.data
 
     def transform(self, id_label, rules = None, reverse = False):
         direction = icu.UTransDirection.REVERSE if reverse else icu.UTransDirection.FORWARD
         if id_label is None and rules is None:
-            return self.data
+            return self
         if id_label in list(icu.Transliterator.getAvailableIDs()):
-            return icu.Transliterator.createInstance(id_label, direction).transliterate(self.data)
+            self.data = icu.Transliterator.createInstance(id_label, direction).transliterate(self.data)
         if rules and id_label is None:
-            return icu.Transliterator.createFromRules("custom", rules, direction).transliterate(self.data)
-        else:
-            return self.data
+            self.data = icu.Transliterator.createFromRules("custom", rules, direction).transliterate(self.data)
+        self._set_parameters()
+        return self
 
     def unicodestring(self):
         return self._unicodestring
 
-    def upper(self, locale = None):
-        return str(icu.UnicodeString(self.data).toUpper(icu.Locale(locale))) if locale else str(icu.UnicodeString(self.data).toUpper())
+    def upper(self, locale = "default"):
+        loc = self._set_locale(locale)
+        self.data = str(icu.UnicodeString(self.data).toUpper(loc))
+        self._set_parameters()
+        return self
