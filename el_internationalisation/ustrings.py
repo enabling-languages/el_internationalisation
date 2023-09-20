@@ -452,6 +452,12 @@ class uString(UserString):
 
     def get_string(self):
         return self.data
+    
+    def remove_stopwords(self, stopwords):
+        filtered_tokens = [word for word in self.data.split() if not word in stopwords]
+        self.data = ' '.join(filtered_tokens)
+        self._set_parameters()
+        return self
 
     def transform(self, id_label, rules = None, reverse = False):
         direction = icu.UTransDirection.REVERSE if reverse else icu.UTransDirection.FORWARD
