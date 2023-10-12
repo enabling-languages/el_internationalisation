@@ -441,18 +441,52 @@ class uString(UserString):
         self.data = self._initial
         self._set_parameters()
 
+    def rsplit(self, sep=None, maxsplit=-1, flags=0):
+        text = self.data
+        # Adapted from https://stackoverflow.com/questions/38953278/what-s-the-equivalent-of-rsplit-with-re-split
+        if maxsplit == 0 or not regex.search(sep, text):
+            return [text]
+        if maxsplit == -1:
+            maxsplit = 0
+        if not sep:
+            sep = r'\p{whitespace}'
+        prev = len(text)                             # Previous match value start position
+        cnt = 0                                      # A match counter
+        result = []                                  # Output list
+        for m in reversed(list(regex.finditer(sep, text, flags=flags))):
+            result.append(text[m.end():prev])        # Append a match to resulting list
+            prev = m.start()                         # Set previous match start position
+            cnt += 1                                 # Increment counter
+            if maxsplit > 0 and cnt >= maxsplit:     # Break out of for loop if maxsplit is greater than 0 and...
+                break                                # ...match count is more or equals max split value
+        result.append(text[:prev])                   # Append the text chunk from start
+        return reversed(result)                      # Return reversed list```
+
+    def split(self, sep=None, maxsplit=-1, flags=0):
+        # Logic regex.split and str.split reverse outputs for maxsplit values of -1 and 0,
+        # This implementation uses regex.split(), but uses the maxsplit logic of str.split()
+        # in order to keep API compatible.
+        # To get python interpretation of whitespace, use the pattern r'[\p{whitespace}\u001C\u001D\u001E\u001F]'
+        if maxsplit == 0:
+            return [self.data]
+        if maxsplit == -1:
+            maxsplit = 0
+        if not sep:
+            sep = r'\p{whitespace}'
+        return regex.split(sep, self.data, maxsplit, flags)
+
     def title(self, locale = "default"):
         loc = self._set_locale(locale)
         self.data = str(icu.UnicodeString(self.data).toTitle(loc))
         self._set_parameters()
         return self
-    
+
     def get_initial(self):
         return self._initial
 
     def get_string(self):
         return self.data
-    
+
     def remove_stopwords(self, stopwords):
         filtered_tokens = [word for word in self.data.split() if not word in stopwords]
         self.data = ' '.join(filtered_tokens)
