@@ -10,6 +10,7 @@ import regex
 import unicodedataplus
 import icu
 from collections import UserString
+from .analyse import codepoints
 
 # from icu import icu.UnicodeString, icu.Locale, icu.Normalizer2, icu.UNormalizationMode2
 
@@ -207,6 +208,16 @@ def normalise(nf, text):
 #
 ####################
 
+# Simple matching
+#   NFD(X) = NFD(Y)
+def simple_match(x, y, use_icu=False):
+    return toNFD(x, use_icu=use_icu) == toNFD(y, use_icu=use_icu)
+
+# Cased matching
+#   toLower(NFD(X)) = toLower(NFD(Y))
+def cased_match(x, y, use_icu=False):
+    return toNFD(x, use_icu=use_icu) == toNFD(y, use_icu=use_icu)
+
 # Caseless matching
 #   toCasefold(X) = toCasefold(Y)
 def caseless_match(x, y, use_icu=False):
@@ -390,6 +401,17 @@ class uString(UserString):
     def available_transforms(self):
         return list(icu.Transliterator.getAvailableIDs())
 
+    def canonical_equivalents(self):
+        deprecated = regex.compile(r'[\u0340\u0341]')
+        # graphemes_list = gr(self.data)
+        results = []
+        for grapheme in self._graphemes:
+            ci = icu.CanonicalIterator(grapheme)
+            equivalents = [char for char in ci if not regex.search(deprecated, char)]
+            equivalents = [codepoints(chars, prefix=True) for chars in equivalents]
+            results.append((grapheme, equivalents))
+        return results
+
     def casefold(self):
         # return str(icu.UnicodeString(self.data).foldCase())
         self.data = str(icu.UnicodeString(self.data).foldCase())
@@ -407,6 +429,12 @@ class uString(UserString):
         self.data = icu.Transliterator.createInstance('Halfwidth-Fullwidth').transliterate(self.data)
         self._set_parameters()
         return self
+
+    def get_initial(self):
+        return self._initial
+
+    def get_string(self):
+        return self.data
 
     def graphemes(self):
         return self._graphemes
@@ -435,6 +463,12 @@ class uString(UserString):
              self.data = icu.Normalizer2.getNFDInstance().normalize(self.data)
         self._unicodestring = icu.UnicodeString(self.data)
         self._graphemes = regex.findall(r'\X',self.data)
+        return self
+
+    def remove_stopwords(self, stopwords):
+        filtered_tokens = [word for word in self.data.split() if not word in stopwords]
+        self.data = ' '.join(filtered_tokens)
+        self._set_parameters()
         return self
 
     def reset(self):
@@ -481,18 +515,6 @@ class uString(UserString):
         self._set_parameters()
         return self
 
-    def get_initial(self):
-        return self._initial
-
-    def get_string(self):
-        return self.data
-
-    def remove_stopwords(self, stopwords):
-        filtered_tokens = [word for word in self.data.split() if not word in stopwords]
-        self.data = ' '.join(filtered_tokens)
-        self._set_parameters()
-        return self
-
     def transform(self, id_label, rules = None, reverse = False):
         direction = icu.UTransDirection.REVERSE if reverse else icu.UTransDirection.FORWARD
         if id_label is None and rules is None:
@@ -512,3 +534,11 @@ class uString(UserString):
         self.data = str(icu.UnicodeString(self.data).toUpper(loc))
         self._set_parameters()
         return self
+
+# TODO: uString
+#    * dominant script  (script code, script name)
+#    * dominant direction
+#    * is_bidi
+#  , * script (script code, script name)
+#    * script extension  (script code, script name)
+#    * first_strong

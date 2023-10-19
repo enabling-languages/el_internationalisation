@@ -1,6 +1,7 @@
 from typing import List
 import icu
 from .ustrings import gr
+from typing import Optional
 
 def list_to_string(items, sep = ', ', drop_bool = True):
     """Convert list to string
@@ -147,3 +148,17 @@ def max_len_terminal(phrase_list):
 
 max_width = max_len_terminal
 
+def find_char_index(character:str, ustring:str) -> Optional[int]:
+    """Find index of the first occurrence of a character in string.
+
+    Args:
+        character (str): character to
+        ustring (str): _description_
+
+    Returns:
+        Optional[int]: string index for character.
+    """
+    idx: int = ustring.find(character)
+    if idx == -1:
+        return None
+    return idx

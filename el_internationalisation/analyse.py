@@ -101,6 +101,7 @@ def codepointsToChar(codepoints):
     for c in cplist:
         results += chr(int(c, 16))
     return results
+    # return "".join([chr(int(i.removeprefix('u+'), 16)) for i in regex.split(r'[,;]\s?|\s+', cps.lower())])
 
 def canonical_equivalents_str(ustring):
     """List canonically equivalent strings for given string.
@@ -127,7 +128,7 @@ def canonical_equivalents(ci, ustring = None):
         ci.setSource(ustring)
     return [' '.join(f"U+{ord(c):04X}" for c in char) for char in ci]
 
-def unicode_data(text):
+def unicode_data(text, ce=False):
     """Display Unicode data for each character in string.
 
     Perform a character tokenisation on a string, and generate a table containing
@@ -150,7 +151,8 @@ def unicode_data(text):
                 unicodedataplus.bidirectional(c),
                 unicodedataplus.combining(c)])
     print(t)
-    print(canonical_equivalents_str(text))
+    if ce:
+        print(canonical_equivalents_str(text))
     return None
 
 udata = unicode_data
