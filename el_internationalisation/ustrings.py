@@ -10,7 +10,7 @@ import regex
 import unicodedataplus
 import icu
 from collections import UserString
-# from .analyse import codepoints
+from .analyse import codepoints
 
 # from icu import icu.UnicodeString, icu.Locale, icu.Normalizer2, icu.UNormalizationMode2
 
