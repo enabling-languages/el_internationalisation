@@ -753,7 +753,9 @@ class uString(UserString):
     def __repr__(self):
         return f'uString({self.data}, {self._initial}, {self._nform})'
 
-    def _set_parameters(self):
+    def _set_parameters(self, new_data=None):
+        if new_data:
+            self.data = new_data
         self._unicodestring = icu.UnicodeString(self.data)
         # self._graphemes = regex.findall(r'\X', self.data)
         self._graphemes = graphemes(self.data)
@@ -845,6 +847,12 @@ class uString(UserString):
         self._set_parameters()
         return self
 
+    def replace(self, old, new, count=-1):
+        data = self.data
+        result = data.replace(old, new, count)
+        self._set_parameters(result)
+        return result
+
     def reset(self):
         self.data = self._initial
         self._set_parameters()
@@ -882,6 +890,12 @@ class uString(UserString):
         if not sep:
             sep = r'\p{whitespace}'
         return regex.split(sep, self.data, maxsplit, flags)
+
+    def swap(self, s1, s2, temp ='\U0010FFFD'):
+        data = self.data
+        result =  data.replace(s1, temp).replace(s2, s1).replace(temp, s2)
+        self._set_parameters(result)
+        return result
 
     def title(self, locale = "default"):
         loc = self._set_locale(locale)
