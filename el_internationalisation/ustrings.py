@@ -851,7 +851,7 @@ class uString(UserString):
         data = self.data
         result = data.replace(old, new, count)
         self._set_parameters(result)
-        return result
+        return self
 
     def reset(self):
         self.data = self._initial
@@ -895,7 +895,7 @@ class uString(UserString):
         data = self.data
         result =  data.replace(s1, temp).replace(s2, s1).replace(temp, s2)
         self._set_parameters(result)
-        return result
+        return self
 
     def title(self, locale = "default"):
         loc = self._set_locale(locale)
