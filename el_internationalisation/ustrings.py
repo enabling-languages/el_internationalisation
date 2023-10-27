@@ -824,6 +824,12 @@ class uString(UserString):
         self._set_parameters()
         return self
 
+    def isprintable(self):
+        printable = []
+        for char in [char for char in self.data]:
+            printable.append(icu.Char.hasBinaryProperty(char, icu.UProperty.POSIX_PRINT))
+        return all(printable)
+
     def lower(self, locale = "default"):
         # return str(icu.UnicodeString(self.data).toLower(icu.Locale(locale))) if locale else str(icu.UnicodeString(self.data).toLower())
         loc = self._set_locale(locale)
