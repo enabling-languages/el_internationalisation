@@ -847,7 +847,8 @@ class uString(UserString):
         self._set_parameters()
         if self.debug:
             return self
-
+        
+    # TODO: add optional regex support
     def lstrip(self, chars=None):
         data = self.data
         self._set_parameters(data.lstrip(chars))
@@ -872,9 +873,15 @@ class uString(UserString):
         if self.debug:
             return self
 
-    def replace(self, old, new, count=-1):
+    # TODO: Add optional regex support
+    # str.replace(old, new[, count])
+    # re.sub(pattern, repl, string, count=0, flags=0)
+    def replace(self, old, new, count=-1, flags=0, use_regex=False):
         data = self.data
-        result = data.replace(old, new, count)
+        if use_regex:
+            result = regex.sub(old, new, data, count, flags)
+        else:
+            result = data.replace(old, new, count)
         self._set_parameters(result)
         if self.debug:
             return self
@@ -904,6 +911,7 @@ class uString(UserString):
         result.append(text[:prev])                   # Append the text chunk from start
         return reversed(result)                      # Return reversed list```
 
+    # TODO: add optional regex support
     def rstrip(self, chars=None):
         data = self.data
         self._set_parameters(data.rstrip(chars))
@@ -923,6 +931,7 @@ class uString(UserString):
             sep = r'\p{whitespace}'
         return regex.split(sep, self.data, maxsplit, flags)
 
+    # TODO: add optional regex support
     def strip(self, chars=None):
         data = self.data
         self._set_parameters(data.strip(chars))
