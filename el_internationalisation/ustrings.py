@@ -347,7 +347,8 @@ class ngraphs:
 
     def _frequency(self):
         # Identify ngraphs in text and count number of occurrences of each ngraph
-        pattern = f'[^\p\u007bP\u007d\p\u007bZ\u007d]\u007b{self.size}\u007d'
+        # pattern = f'[^\p\u007bP\u007d\p\u007bZ\u007d]\u007b{self.size}\u007d'
+        pattern = r'[^\p{P}\p{Z}]{' + str(self.size) + r'}'
         r = {}
         if self.graphemes:
             gr = regex.findall(r'\X', self.text)
@@ -443,11 +444,11 @@ def is_word_forming(text: str, extended: bool = False) -> bool:
     Returns:
         bool: result, either True or False.
     """
-    pattern = "\p{alpha}\p{gc=Mark}\p{digit}\p{gc=Connector_Punctuation}\p{Join_Control}"
+    pattern = r'\p{alpha}\p{gc=Mark}\p{digit}\p{gc=Connector_Punctuation}\p{Join_Control}'
     if len(text) == 1:
         extended = False
     if extended:
-        pattern = "\p{alpha}\p{gc=Mark}\p{digit}\p{gc=Connector_Punctuation}\p{Join_Control}\u002D\u002E\u00B7"
+        pattern = r'\p{alpha}\p{gc=Mark}\p{digit}\p{gc=Connector_Punctuation}\p{Join_Control}\u002D\u002E\u00B7'
     if len(text) == 1:
         return bool(regex.match(f'[{pattern}]', text))
     return bool(regex.match(f'^[{pattern}]*$', text))
@@ -677,7 +678,8 @@ TURKIC = ["tr", "az"]
 #
 def toSentence(s, engine="core", lang="und"):
     # loc = icu.Locale.forLanguageTag(lang)
-    lang = regex.split('[_\-]', lang.lower())[0]
+    # lang = regex.split('[_\-]', lang.lower())[0]
+    lang = regex.split(r'[_\-]', lang.lower())[0]
     result = ""
     if (engine == "core") and (lang in TURKIC):
         result = buyukharfyap(s[0]) + kucukharfyap(s[1:])
