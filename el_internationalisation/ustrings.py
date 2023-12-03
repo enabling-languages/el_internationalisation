@@ -745,6 +745,7 @@ class uString(UserString):
         self._nform = None
         self._unicodestring = icu.UnicodeString(string)
         self._graphemes = graphemes(string)
+        self.debug = False
         super().__init__(string)
 
     def __str__(self):
@@ -753,12 +754,11 @@ class uString(UserString):
     def __repr__(self):
         return f'uString({self.data}, {self._initial}, {self._nform})'
 
-    def _set_parameters(self, new_data=None):
-        if new_data:
-            self.data = new_data
-        self._unicodestring = icu.UnicodeString(self.data)
-        # self._graphemes = regex.findall(r'\X', self.data)
-        self._graphemes = graphemes(self.data)
+    def _get_binary_property_value(self, property):
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.hasBinaryProperty(char, property))
+        return all(status)
 
     def _set_locale(self, locale = "default"):
         match locale:
@@ -770,6 +770,13 @@ class uString(UserString):
                 return icu.Locale.getDefault()
             case _  :
                 return icu.Locale(locale)
+
+    def _set_parameters(self, new_data=None):
+        if new_data:
+            self.data = new_data
+        self._unicodestring = icu.UnicodeString(self.data)
+        # self._graphemes = regex.findall(r'\X', self.data)
+        self._graphemes = graphemes(self.data)
 
     def available_locales(self):
         return list(icu.Locale.getAvailableLocales().keys())
@@ -792,7 +799,8 @@ class uString(UserString):
         # return str(icu.UnicodeString(self.data).foldCase())
         self.data = str(icu.UnicodeString(self.data).foldCase())
         self._set_parameters()
-        return self
+        if self.debug:
+            return self
 
     def codepoints(self, prefix = False, extended = False):
         if extended:
@@ -804,7 +812,8 @@ class uString(UserString):
         # return icu.Transliterator.createInstance('Halfwidth-Fullwidth').transliterate(self.data)
         self.data = icu.Transliterator.createInstance('Halfwidth-Fullwidth').transliterate(self.data)
         self._set_parameters()
-        return self
+        if self.debug:
+            return self
 
     def get_initial(self):
         return self._initial
@@ -822,7 +831,8 @@ class uString(UserString):
         # return icu.Transliterator.createInstance('Fullwidth-Halfwidth').transliterate(self.data)
         self.data = icu.Transliterator.createInstance('Fullwidth-Halfwidth').transliterate(self.data)
         self._set_parameters()
-        return self
+        if self.debug:
+            return self
 
     def isprintable(self):
         printable = []
@@ -835,7 +845,14 @@ class uString(UserString):
         loc = self._set_locale(locale)
         self.data = str(icu.UnicodeString(self.data).toLower(loc))
         self._set_parameters()
-        return self
+        if self.debug:
+            return self
+
+    def lstrip(self, chars=None):
+        data = self.data
+        self._set_parameters(data.lstrip(chars))
+        if self.debug:
+            return self
 
     def normalize(self, nform):
         self._nform = nform.upper()
@@ -845,19 +862,22 @@ class uString(UserString):
              self.data = icu.Normalizer2.getNFDInstance().normalize(self.data)
         self._unicodestring = icu.UnicodeString(self.data)
         self._graphemes = regex.findall(r'\X',self.data)
-        return self
+        if self.debug:
+            return self
 
     def remove_stopwords(self, stopwords):
         filtered_tokens = [word for word in self.data.split() if not word in stopwords]
         self.data = ' '.join(filtered_tokens)
         self._set_parameters()
-        return self
+        if self.debug:
+            return self
 
     def replace(self, old, new, count=-1):
         data = self.data
         result = data.replace(old, new, count)
         self._set_parameters(result)
-        return self
+        if self.debug:
+            return self
 
     def reset(self):
         self.data = self._initial
@@ -884,6 +904,12 @@ class uString(UserString):
         result.append(text[:prev])                   # Append the text chunk from start
         return reversed(result)                      # Return reversed list```
 
+    def rstrip(self, chars=None):
+        data = self.data
+        self._set_parameters(data.rstrip(chars))
+        if self.debug:
+            return self
+
     def split(self, sep=None, maxsplit=-1, flags=0):
         # Logic regex.split and str.split reverse outputs for maxsplit values of -1 and 0,
         # This implementation uses regex.split(), but uses the maxsplit logic of str.split()
@@ -897,17 +923,25 @@ class uString(UserString):
             sep = r'\p{whitespace}'
         return regex.split(sep, self.data, maxsplit, flags)
 
+    def strip(self, chars=None):
+        data = self.data
+        self._set_parameters(data.strip(chars))
+        if self.debug:
+            return self
+
     def swap(self, s1, s2, temp ='\U0010FFFD'):
         data = self.data
         result =  data.replace(s1, temp).replace(s2, s1).replace(temp, s2)
         self._set_parameters(result)
-        return self
+        if self.debug:
+            return self
 
     def title(self, locale = "default"):
         loc = self._set_locale(locale)
         self.data = str(icu.UnicodeString(self.data).toTitle(loc))
         self._set_parameters()
-        return self
+        if self.debug:
+            return self
 
     def transform(self, id_label, rules = None, reverse = False):
         direction = icu.UTransDirection.REVERSE if reverse else icu.UTransDirection.FORWARD
@@ -918,7 +952,8 @@ class uString(UserString):
         if rules and id_label is None:
             self.data = icu.Transliterator.createFromRules("custom", rules, direction).transliterate(self.data)
         self._set_parameters()
-        return self
+        if self.debug:
+            return self
 
     def unicodestring(self):
         return self._unicodestring
@@ -927,7 +962,8 @@ class uString(UserString):
         loc = self._set_locale(locale)
         self.data = str(icu.UnicodeString(self.data).toUpper(loc))
         self._set_parameters()
-        return self
+        if self.debug:
+            return self
 
 # TODO: uString
 #    * dominant script  (script code, script name)
