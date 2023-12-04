@@ -836,11 +836,123 @@ class uString(UserString):
         if self.debug:
             return self
 
-    def isprintable(self):
-        printable = []
+    def isalnum(self):
+        status = []
         for char in [char for char in self.data]:
-            printable.append(icu.Char.hasBinaryProperty(char, icu.UProperty.POSIX_PRINT))
-        return all(printable)
+            status.append(icu.Char.isalnum(char))
+        return all(status)
+
+    def isalpha(self):
+        # Determines whether the specified code point is a letter character.
+        # True for general categories "L" (letters).
+        # Same as java.lang.Character.isLetter().
+        # Serves as a C/POSIX migration function.
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isalpha(char))
+        return all(status)
+
+    def isalphaU(self):
+        # Check if a code point has the Alphabetic Unicode property.
+        # Same as u_hasBinaryProperty(c, UCHAR_ALPHABETIC). This is different from u_isalpha!
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isUAlphabetic(char))
+        return all(status)
+
+    def isascii(self):
+        data = self.data
+        return data.isascii()
+
+    def isidentifier(self):
+        data = self.data
+        return data.isidentifier()
+
+    def islower(self):
+        # Determines whether the specified code point has the general category "Ll" (lowercase letter). 
+        # This misses some characters that are also lowercase but have a different general category value. 
+        # In order to include those, use UCHAR_LOWERCASE.
+        # This is a C/POSIX migration function.
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.islower(char))
+        return all(status)
+
+    def islowerU(self):
+        # Check if a code point has the Lowercase Unicode property. 
+        # Same as u_hasBinaryProperty(c, UCHAR_LOWERCASE). This is different from icu.Char.islower! 
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isULowercase(char))
+        return all(status)
+
+    def ismirrored(self):
+        # Determines whether the code point has the Bidi_Mirrored property.
+        # This property is set for characters that are commonly used in Right-To-Left contexts 
+        # and need to be displayed with a "mirrored" glyph.
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isMirrored(char))
+        return all(status)
+
+    def isprintable(self):
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isprint(char))
+        return all(status)
+
+    def isspace(self):
+        # Determines if the specified character is a space character or not. 
+        # Note: There are several ICU whitespace functions;
+        # This is a C/POSIX migration function.
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isspace(char))
+        return all(status)
+
+    def isupper(self):
+        # Determines whether the specified code point has the general category "Lu" (uppercase letter).
+        # This misses some characters that are also uppercase but have a different general category value. In order # to include those, use UCHAR_UPPERCASE.
+        # This is a C/POSIX migration function.
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isupper(char))
+        return all(status)
+
+    def isupperU(self):
+        # Check if a code point has the Uppercase Unicode property.
+        # Same as u_hasBinaryProperty(c, UCHAR_UPPERCASE). This is different from u_isupper!
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isUUppercase(char))
+        return all(status)
+
+    def iswhitespace(self):
+        # Determines if the specified code point is a whitespace character according to Java/ICU. 
+        # A character is considered to be a Java whitespace character if and only if it satisfies one of the following criteria:
+        #     * It is a Unicode Separator character (categories "Z" = "Zs" or "Zl" or "Zp"), but is not also a non-breaking space (U+00A0 NBSP or U+2007 Figure Space or U+202F Narrow NBSP).
+        #     * It is U+0009 HORIZONTAL TABULATION.
+        #     * It is U+000A LINE FEED.
+        #     * It is U+000B VERTICAL TABULATION.
+        #     * It is U+000C FORM FEED.
+        #     * It is U+000D CARRIAGE RETURN.
+        #     * It is U+001C FILE SEPARATOR.
+        #     * It is U+001D GROUP SEPARATOR.
+        #     * It is U+001E RECORD SEPARATOR.
+        #     * It is U+001F UNIT SEPARATOR.
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isWhitespace(char))
+        return all(status)
+
+    def iswhitespaceU(self):
+        # Check if a code point has the White_Space Unicode property.
+        # Same as u_hasBinaryProperty(c, UCHAR_WHITE_SPACE).
+        # This is different from both u_isspace and u_isWhitespace!
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isUWhiteSpace(char))
+        return all(status)
 
     def lower(self, locale = "default"):
         # return str(icu.UnicodeString(self.data).toLower(icu.Locale(locale))) if locale else str(icu.UnicodeString(self.data).toLower())
@@ -849,7 +961,7 @@ class uString(UserString):
         self._set_parameters()
         if self.debug:
             return self
-        
+
     # TODO: add optional regex support
     def lstrip(self, chars=None):
         data = self.data
@@ -983,3 +1095,16 @@ class uString(UserString):
 #  , * script (script code, script name)
 #    * script extension  (script code, script name)
 #    * first_strong
+#    * isnumeric
+#    * isdecimal
+#    * isbase  -> uString.isbase
+#    * isblank  -> uString.isblank
+#    * iscntrl  -> uString.iscntrl
+#    * isdefined  -> uString.isdefined
+#    * isdigit  -> uString.isdigit
+#    * isgraph  -> uString.isgraph
+#    * ispunct  -> uString.ispunct
+#    * istitle  -> uString.istitle
+#    * isxdigit  -> uString.isxdigit
+
+# 'capitalize', 'center', 'count', 'encode', 'endswith', 'expandtabs', 'find', 'format', 'format_map', 'index', 'isdecimal', 'isdigit', 'isnumeric', 'istitle', 'isupper', 'join', 'ljust', 'maketrans', 'partition', 'removeprefix', 'removesuffix', 'rfind', 'rindex', 'rjust', 'rpartition', 'rsplit',  'splitlines', 'startswith', 'swapcase', 'translate', 'zfill'

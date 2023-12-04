@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='el_internationalisation',
-    version='0.5.1',
+    version='0.5.2',
     description='Helper functions to improve Python internationalisation',
     url='https://github.com/enabling-languages/el_internationalisation',
     author='Andrew Cunningham',
@@ -10,6 +10,8 @@ setup(
     license='MIT',
     packages=['el_internationalisation'],
     install_requires=[
+        'lxml',
+        'prettytable',
         'pyicu',
         'regex',
         'unicodedataplus'
