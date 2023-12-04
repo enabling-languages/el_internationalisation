@@ -991,9 +991,11 @@ class uString(UserString):
     # str.replace(old, new[, count])
     # re.sub(pattern, repl, string, count=0, flags=0)
     def replace(self, old, new, count=-1, flags=0, use_regex=False):
+        if count == -1 and use_regex == True:
+            count = 0
         data = self.data
         if use_regex:
-            result = regex.sub(old, new, data, count, flags)
+            result = regex.sub(old, new, data, count, flags) if flags else regex.sub(old, new, data, count)
         else:
             result = data.replace(old, new, count)
         self._set_parameters(result)
