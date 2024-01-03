@@ -12,6 +12,7 @@ import prettytable
 import regex
 import unicodedataplus
 from .bidi import bidi_envelope, is_bidi
+from typing import Self
 
 # TODO:
 #   * add type hinting
@@ -600,7 +601,7 @@ def caseless_match(x, y, use_icu=False):
 
 # Canonical caseless matching
 #   NFD(toCasefold(NFD(X))) = NFD(toCasefold(NFD(Y)))
-def canonical_caseless_match_icu(x, y, use_icu=False):
+def canonical_caseless_match(x, y, use_icu=False):
     return toNFD(toCasefold(toNFD(x, use_icu=use_icu), use_icu=use_icu), use_icu=use_icu) == toNFD(toCasefold(toNFD(y, use_icu=use_icu), use_icu=use_icu), use_icu=use_icu)
 
 # Compatibility caseless match
@@ -808,6 +809,15 @@ class uString(UserString):
         self._set_parameters()
         return self
 
+    # case-insensitive
+    ci = casefold
+
+    # Canonical case-insensitive
+    def cci(self):
+        self.data = toNFD(toCasefold(toNFD(self.data, use_icu=True), use_icu=True), use_icu=True)
+        self._set_parameters()
+        return self
+
     def codepoints(self, prefix = False, extended = False):
         if extended:
             return ' '.join(f"U+{ord(c):04X} ({c})" for c in self.data) if prefix else ' '.join(f"{ord(c):04X} ({c})" for c in self.data)
@@ -969,12 +979,35 @@ class uString(UserString):
         self._set_parameters(data.lstrip(chars))
         return self
 
-    def normalize(self, nform):
+    # def normalize(self, nform):
+    #     self._nform = nform.upper()
+    #     if self._nform == "NFC":
+    #         self.data = icu.Normalizer2.getNFCInstance().normalize(self.data)
+    #     elif self._nform == "NFD":
+    #          self.data = icu.Normalizer2.getNFDInstance().normalize(self.data)
+    #     self._unicodestring = icu.UnicodeString(self.data)
+    #     self._graphemes = regex.findall(r'\X',self.data)
+    #     return self
+
+    def normalise(self, nform="NFD", use_icu=True):
         self._nform = nform.upper()
-        if self._nform == "NFC":
-            self.data = icu.Normalizer2.getNFCInstance().normalize(self.data)
-        elif self._nform == "NFD":
-             self.data = icu.Normalizer2.getNFDInstance().normalize(self.data)
+        if use_icu:
+            match nform:
+                case 'NFC':
+                    self.data = icu.Normalizer2.getNFCInstance().normalize(self.data)
+                case 'NFKC':
+                    self.data = icu.Normalizer2.getNFKCInstance().normalize(self.data)
+                case 'NFKD':
+                    self.data = icu.Normalizer2.getNFKDInstance().normalize(self.data)
+                case "NFKC_CASEFOLD":
+                    self.data = icu.Normalizer2.getNFKCCasefoldInstance().normalize(self.data)
+                case _:
+                    self.data = icu.Normalizer2.getNFDInstance().normalize(self.data)
+        else:
+            if nform == "NFKC_CASEFOLD" or "NFKC_CF":
+                self.data = unicodedataplus.normalize("NFC", unicodedataplus.normalize('NFKC', self.data).casefold())
+            else:
+                self.data = unicodedataplus.normalize(nform, self.data)
         self._unicodestring = icu.UnicodeString(self.data)
         self._graphemes = regex.findall(r'\X',self.data)
         return self
@@ -1088,7 +1121,15 @@ class uString(UserString):
     def unicodestring(self):
         return self._unicodestring
 
-    def upper(self, locale = "default"):
+    def upper(self, locale: str = "default") -> Self:
+        """Return a copy of the string with all the cased characters converted to uppercase.
+
+        Args:
+            locale (str, optional): Locale identifier. Defaults to "default".
+
+        Returns:
+            Self: Updated uString object, with data uppercased.
+        """
         loc = self._set_locale(locale)
         self.data = str(icu.UnicodeString(self.data).toUpper(loc))
         self._set_parameters()
