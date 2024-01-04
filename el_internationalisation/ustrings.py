@@ -760,6 +760,14 @@ class uString(UserString):
         class_name = type(self).__name__
         return f"{class_name}(nform={self._nform})"
 
+    def _isbicameral(self):
+        # Garay (Gara) to be added in Unicode v16
+        # Zaghawa (Beria Giray Erfe) not in Unicode, preliminary proposal available, no script code.
+        bicameral_scripts = {'Adlam', 'Armenian', 'Cherokee', 'Coptic', 'Cyrillic', 'Deseret', 'Glagolitic', 'Greek', 'Old_Hungarian', 'Latin', 'Osage', 'Vithkuqi', 'Warang_Citi'}
+        scripts_in_text = set()
+        for char in self.data:
+            scripts_in_text.add(unicodedataplus.script(char))
+        return True if bicameral_scripts & scripts_in_text else False
 
     def _get_binary_property_value(self, property):
         status = []
@@ -803,13 +811,25 @@ class uString(UserString):
             results.append((grapheme, equivalents))
         return results
 
+    def capitalise(self, locale = "default"):
+        loc = self._set_locale(locale)
+        data = self.data.split(maxsplit=1)
+        if len(data) == 1:
+            self.data = f"{str(icu.UnicodeString(data[0]).toTitle(loc))}"
+        else:
+            self.data = f"{str(icu.UnicodeString(data[0]).toTitle(loc))} {str(icu.UnicodeString(data[1]).toLower(loc))}"
+        self._set_parameters()
+        return self
+
+    capitalize = capitalise
+
     def casefold(self):
         # return str(icu.UnicodeString(self.data).foldCase())
         self.data = str(icu.UnicodeString(self.data).foldCase())
         self._set_parameters()
         return self
 
-    # case-insensitive
+    # Case-insensitive
     ci = casefold
 
     # Canonical case-insensitive
@@ -818,11 +838,27 @@ class uString(UserString):
         self._set_parameters()
         return self
 
+    # center - from UserString
+
     def codepoints(self, prefix = False, extended = False):
         if extended:
             return ' '.join(f"U+{ord(c):04X} ({c})" for c in self.data) if prefix else ' '.join(f"{ord(c):04X} ({c})" for c in self.data)
         else:
             return ' '.join(f"U+{ord(c):04X}" for c in self.data) if prefix else ' '.join(f"{ord(c):04X}" for c in self.data)
+
+    # count - from UserString
+    # encode - from UserString
+    # endswith - from UserString
+
+    def envelope(self, dir = "auto", mode = "isolate"):
+        self.data = bidi_envelope(self.data, dir, mode)
+        self._set_parameters()
+        return self
+
+    # expandtabs - from UserString
+    # find - from UserString
+    # format - from UserString
+    # format_map - from UserString
 
     def fullwidth(self):
         # return icu.Transliterator.createInstance('Halfwidth-Fullwidth').transliterate(self.data)
@@ -847,6 +883,8 @@ class uString(UserString):
         self.data = icu.Transliterator.createInstance('Fullwidth-Halfwidth').transliterate(self.data)
         self._set_parameters()
         return self
+
+    # index - from UserString
 
     def isalnum(self):
         status = []
@@ -875,6 +913,9 @@ class uString(UserString):
     def isascii(self):
         data = self.data
         return data.isascii()
+
+    # isdecimal - from UserString
+    # isdigit - from UserString
 
     def isidentifier(self):
         data = self.data
@@ -907,6 +948,8 @@ class uString(UserString):
             status.append(icu.Char.isMirrored(char))
         return all(status)
 
+    # isnumeric - from UserString
+
     def isprintable(self):
         status = []
         for char in [char for char in self.data]:
@@ -921,6 +964,17 @@ class uString(UserString):
         for char in [char for char in self.data]:
             status.append(icu.Char.isspace(char))
         return all(status)
+
+    def istitle(self, locale = "default"):
+        loc = self._set_locale(locale)
+        if not self._isbicameral():
+            return False
+        words = self.data.split()
+        words_status = []
+        for word in words:
+            words_status.append(True) if word == str(icu.UnicodeString(word).toTitle(loc)) else words_status.append(False)
+        return all(words_status)
+
 
     def isupper(self):
         # Determines whether the specified code point has the general category "Lu" (uppercase letter).
@@ -966,6 +1020,9 @@ class uString(UserString):
             status.append(icu.Char.isUWhiteSpace(char))
         return all(status)
 
+    # join - from UserString
+    # ljust - from UserString
+
     def lower(self, locale = "default"):
         # return str(icu.UnicodeString(self.data).toLower(icu.Locale(locale))) if locale else str(icu.UnicodeString(self.data).toLower())
         loc = self._set_locale(locale)
@@ -988,6 +1045,8 @@ class uString(UserString):
     #     self._unicodestring = icu.UnicodeString(self.data)
     #     self._graphemes = regex.findall(r'\X',self.data)
     #     return self
+
+    # maketrans - from UserString
 
     def normalise(self, nform="NFD", use_icu=True):
         self._nform = nform.upper()
@@ -1012,6 +1071,12 @@ class uString(UserString):
         self._graphemes = regex.findall(r'\X',self.data)
         return self
 
+    normalize = normalise
+
+    # partition - from UserString
+    # removeprefix - from UserString
+    # removesuffix - from UserString
+
     def remove_stopwords(self, stopwords):
         filtered_tokens = [word for word in self.data.split() if not word in stopwords]
         self.data = ' '.join(filtered_tokens)
@@ -1035,6 +1100,11 @@ class uString(UserString):
     def reset(self):
         self.data = self._initial
         self._set_parameters()
+
+    # rfind - from UserString
+    # rindex - from UserString
+    # rjust - from UserString
+    # rpartition - from UserString
 
     def rsplit(self, sep=None, maxsplit=-1, flags=0):
         text = self.data
@@ -1076,6 +1146,9 @@ class uString(UserString):
             sep = r'\p{whitespace}'
         return regex.split(sep, self.data, maxsplit, flags)
 
+    # splitlines - from UserString
+    # startswith - from UserString
+
     # TODO: add optional regex support
     def strip(self, chars=None):
         data = self.data
@@ -1087,6 +1160,8 @@ class uString(UserString):
         result =  data.replace(s1, temp).replace(s2, s1).replace(temp, s2)
         self._set_parameters(result)
         return self
+
+    # TODO: swapcase
 
     def title(self, locale = "default"):
         loc = self._set_locale(locale)
@@ -1118,6 +1193,8 @@ class uString(UserString):
         self._set_parameters()
         return self
 
+    # translate - from UserString
+
     def unicodestring(self):
         return self._unicodestring
 
@@ -1134,6 +1211,8 @@ class uString(UserString):
         self.data = str(icu.UnicodeString(self.data).toUpper(loc))
         self._set_parameters()
         return self
+
+    # zfill - from UserString
 
 # TODO: uString
 #    * dominant script  (script code, script name)
@@ -1155,3 +1234,5 @@ class uString(UserString):
 #    * isxdigit  -> uString.isxdigit
 
 # 'capitalize', 'center', 'count', 'encode', 'endswith', 'expandtabs', 'find', 'format', 'format_map', 'index', 'isdecimal', 'isdigit', 'isnumeric', 'istitle', 'isupper', 'join', 'ljust', 'maketrans', 'partition', 'removeprefix', 'removesuffix', 'rfind', 'rindex', 'rjust', 'rpartition', 'rsplit',  'splitlines', 'startswith', 'swapcase', 'translate', 'zfill'
+
+# icu.UnicodeString - trim, toTitle, startswith/startsWith, reverse, length, endswith/endsWith, compareBetween, compare, caseCompareBetween, caseCompare
