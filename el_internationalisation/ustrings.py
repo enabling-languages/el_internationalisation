@@ -18,7 +18,11 @@ from typing import Self
 #   * add type hinting
 #   * add DocStrings
 
-
+VERSION = "0.5.6"
+UD_VERSION = unicodedataplus.unidata_version
+ICU_VERSION = icu.ICU_VERSION
+PYICU_VERSION = icu.VERSION
+ICU_UNICODE_VERSION = icu.UNICODE_VERSION
 
 ####################
 # analyse characters
@@ -461,6 +465,22 @@ def is_word_forming(text: str, extended: bool = False) -> bool:
 #
 ####################
 
+def register_transformation(id: str, rules: str, direction: int = icu.UTransDirection.FORWARD) -> None:
+    """Register a custom transliterator, allowing it to be reused.
+
+    Args:
+        id (str): id for transliterator, to be used with icu.Transliterator.createInstance().
+        rules (str): Transliteration/transformation rules. Refer to 
+        direction (int, optional): Direction of transformation to be applied. Defaults to icu.UTransDirection.FORWARD.
+
+    Returns:
+        None:
+    """
+    if id not in list(icu.Transliterator.getAvailableIDs()):
+        transformer = icu.Transliterator.createFromRules(id, rules, direction)
+        icu.Transliterator.registerInstance(transformer)
+    return None
+
 def toNFD(text, use_icu=False):
     if use_icu:
         normaliser = icu.Normalizer2.getNFDInstance()
@@ -524,7 +544,7 @@ def normalise_hangul(s, normalisation_form = "NFC"):
 def marc_hangul(text):
     return "".join(list(map(normalise_hangul, regex.split(r'(\P{Hangul})', text))))
 
-def normalise(nf, text):
+def normalise(nf, text, use_icu=False):
     nf = nf.upper()
     if nf not in ["NFC", "NFKC", "NFKC_CF", "NFD", "NFKD", "NFM21"]:
         nf="NFC"
@@ -573,9 +593,34 @@ def normalise(nf, text):
             text = marc_hangul(text)
         return text
     if nf == "NFM21":
-        return marc21_normalise(text)
-    if nf == "NFKC_CF":
-        return toNFKC_Casefold(text)
+        if use_icu:
+            transform_id = "toNFM21"
+            nfm21_rules = (":: NFD; "
+                ":: [\\p{Hangul}] NFC ; "
+                "\u004F\u031B > \u01A0 ; \u008F\u031B > \u01A1 ; \u0055\u031B > \u01AF ; \u0075\u031B > \u01B0 ; "
+                "\u0415\u0308 > \u0401 ; \u0435\u0308 > \u0451 ; \u0413\u0301 > \u0403 ; \u0433\u0301 > \u0453 ; \u0406\u0308 > \u0407 ; \u0456\u0308 > \u0457 ; \u041A\u0301 > \u040C ; \u043A\u0301 > \u045C ; \u0423\u0306 > \u040E ; \u0443\u0306 > \u045E ; \u0418\u0306 > \u0419 ; \u0438\u0306 > \u0439 ; "
+                "\u0627\u0653 > \u0622 ; \u0627\u0654 > \u0623 ; \u0648\u0654 > \u0624 ; \u0627\u0655 > \u0625 ; \u064A\u0654 > \u0626 ; ")
+            transform_direction = icu.UTransDirection.FORWARD
+            register_transformation(transform_id, nfm21_rules, transform_direction)
+            transformer = icu.Transliterator.createInstance(transform_id, transform_direction)
+            return transformer.transliterate(text)
+        else:
+            return marc21_normalise(text)
+    elif nf == "NFKC_CF":
+        if use_icu:
+            normaliser = icu.Normalizer2.getNFKCCasefoldInstance()
+        else:
+            return toNFKC_Casefold(text)
+    elif nf == "NFC" and use_icu:
+        normaliser = icu.Normalizer2.getNFCInstance()
+    elif nf == "NFKC" and use_icu:
+        normaliser = icu.Normalizer2.getNFKCInstance()
+    elif nf == "NFD" and use_icu:
+        normaliser = icu.Normalizer2.getNFDInstance()
+    elif nf == "NFKD" and use_icu:
+        normaliser = icu.Normalizer2.getNFKDInstance()
+    if use_icu:
+        return normaliser.normalize(text)
     return unicodedataplus.normalize(nf, text)
 
 ####################
