@@ -195,8 +195,8 @@ def xsl_transformation(xslfile, xmlfile = None, xmlstring = None, params={}):
 #
 #
 #
-problem_chars_pattern = re.compile(r'[\p{Bidi_Control}\p{Cs}\p{Co}\p{Cn}\u0333\u3013\uFFFD]')
-# problem_chars_pattern = re.compile(r'[\p{Cf}\p{Cs}\p{Co}\p{Cn}\u0333\u3013\uFFFD]')
+problem_chars_pattern = regex.compile(r'[\p{Bidi_Control}\p{Cs}\p{Co}\p{Cn}\u0333\u3013\uFFFD]')
+# problem_chars_pattern = regex.compile(r'[\p{Cf}\p{Cs}\p{Co}\p{Cn}\u0333\u3013\uFFFD]')
 problem_chars = ['\u0333', '\u3013', '\uFFFD']
 problem_chars.extend(list(icu.UnicodeSet(r'\p{Bidi_Control}')))
 # problem_chars.extend(list(icu.UnicodeSet(r'\p{Cf}')))
