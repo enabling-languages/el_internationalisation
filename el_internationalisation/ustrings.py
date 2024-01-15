@@ -598,8 +598,11 @@ def normalise(nf, text, use_icu=False):
             nfm21_rules = (":: NFD; "
                 ":: [\\p{Hangul}] NFC ; "
                 "\u004F\u031B > \u01A0 ; \u008F\u031B > \u01A1 ; \u0055\u031B > \u01AF ; \u0075\u031B > \u01B0 ; "
-                "\u0415\u0308 > \u0401 ; \u0435\u0308 > \u0451 ; \u0413\u0301 > \u0403 ; \u0433\u0301 > \u0453 ; \u0406\u0308 > \u0407 ; \u0456\u0308 > \u0457 ; \u041A\u0301 > \u040C ; \u043A\u0301 > \u045C ; \u0423\u0306 > \u040E ; \u0443\u0306 > \u045E ; \u0418\u0306 > \u0419 ; \u0438\u0306 > \u0439 ; "
-                "\u0627\u0653 > \u0622 ; \u0627\u0654 > \u0623 ; \u0648\u0654 > \u0624 ; \u0627\u0655 > \u0625 ; \u064A\u0654 > \u0626 ; ")
+                "\u0415\u0308 > \u0401 ; \u0435\u0308 > \u0451 ; \u0413\u0301 > \u0403 ; \u0433\u0301 > \u0453 ; "
+                "\u0406\u0308 > \u0407 ; \u0456\u0308 > \u0457 ; \u041A\u0301 > \u040C ; \u043A\u0301 > \u045C ; "
+                "\u0423\u0306 > \u040E ; \u0443\u0306 > \u045E ; \u0418\u0306 > \u0419 ; \u0438\u0306 > \u0439 ; "
+                "\u0627\u0653 > \u0622 ; \u0627\u0654 > \u0623 ; \u0648\u0654 > \u0624 ; \u0627\u0655 > \u0625 ; "
+                "\u064A\u0654 > \u0626 ; ")
             transform_direction = icu.UTransDirection.FORWARD
             register_transformation(transform_id, nfm21_rules, transform_direction)
             transformer = icu.Transliterator.createInstance(transform_id, transform_direction)

@@ -103,7 +103,10 @@ def clean_marc_subfield(item: str, lang: str, norm_form: str = "NFD", thai_lao_r
     Returns:
         str: _description_
     """
-    item = normalise("NFD", html.unescape(item), use_icu=True)
+    if regex.search(r'&#', item):
+        item = normalise("NFD", html.unescape(item), use_icu=True)
+    else:
+        item = normalise("NFD", item, use_icu=True)
     norm_form = norm_form.upper()
     if lang in thai_lao_rom_languages:
         if thai_lao_rom:
