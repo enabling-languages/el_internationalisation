@@ -438,7 +438,7 @@ def is_word_forming(text: str, extended: bool = False) -> bool:
     """Test whether a string contains only word forming characters.
 
     Uses the definition in Unicode Regular Expressions UTD #18:
-    r'[\p{alpha}\p{gc=Mark}\p{digit}\p{gc=Connector_Punctuation}\p{Join_Control}]'
+    '[\\p{alpha}\\p{gc=Mark}\\p{digit}\\p{gc=Connector_Punctuation}\\p{Join_Control}]'
 
     Optional support for hyphens, apostophe, interpunct.
 

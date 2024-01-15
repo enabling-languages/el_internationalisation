@@ -1,8 +1,10 @@
 import regex
 import html
-from .ustrings import normalise
+from .ustrings import normalise, codepoints
 from lxml import etree
 from typing import Union
+import unicodedataplus
+import icu
 
 # Languages to normalise : ISO-639-1 and ISO-639-2/B language codes.
 thai_lao_rom_languages = ["lao", "lo", "tha", "th"]
@@ -76,11 +78,11 @@ def clean_cyrillic_rom(item: str) -> str:
     Returns:
         str: Normalised string
     """
-    item - regex.sub(r'[tT]\uFE20[sS]\uFE21\u0307', r'\1\u0361\u034F\u0307\2', item)
-    item = regex.sub(r'[tT]\uFE20\u0307[sS]\uFE21', r'\1\u0361\u034F\u0307\2', item)
-    item = regex.sub(r'([oO]\u0304)\uFE20([tT])\uFE21', r'\1\u0304\u0361\2', item)
-    item = regex.sub(r'([iI])\uFE20([eEoO]\u0328)\uFE21', r'\1\u0361\2\u0328', item)
-    item = regex.sub(r'([dD])\uFE20{[zZ]\u030C)\uFE21', r'\1\u0361$1\u030C', item)
+    item - regex.sub(r'([tT])\uFE20([sS])\uFE21\u0307', r'\1\u0361\u034F\u0307\2', item)
+    item = regex.sub(r'([tT])\uFE20\u0307([sS])\uFE21', r'\1\u0361\u034F\u0307\2', item)
+    item = regex.sub(r'([oO])\u0304\uFE20([tT])\uFE21', r'\1\u0304\u0361\2', item)
+    item = regex.sub(r'([iI])\uFE20([eEoO])\u0328\uFE21', r'\1\u0361\2\u0328', item)
+    item = regex.sub(r'([dD])\uFE20([zZ])\u030C\uFE21', r'\1\u0361\1\u030C', item)
     item = regex.sub(r'([dDiIkKpnNPtTzZ])\uFE20([aAeEhHgGnNoOsSuUzZ])\uFE21', r'\1\u0361\2', item)
     return item
 
@@ -101,7 +103,7 @@ def clean_marc_subfield(item: str, lang: str, norm_form: str = "NFD", thai_lao_r
     Returns:
         str: _description_
     """
-    item = normalise("NFD", html.unescape(item))
+    item = normalise("NFD", html.unescape(item), use_icu=True)
     norm_form = norm_form.upper()
     if lang in thai_lao_rom_languages:
         if thai_lao_rom:
@@ -109,7 +111,7 @@ def clean_marc_subfield(item: str, lang: str, norm_form: str = "NFD", thai_lao_r
     if lang in cyrillic_rom_languages:
         if cyrillic_rom:
             item = clean_cyrillic_rom(item)
-    item = normalise(norm_form, item) if norm_form != "NFD" else item
+    item = normalise(norm_form, item, use_icu=True) if norm_form != "NFD" else item
     return item
 
 ##############################
@@ -184,3 +186,34 @@ def xsl_transformation(xslfile, xmlfile = None, xmlstring = None, params={}):
             xml_contents = etree.parse(xmlfile)
     result = transform(xml_contents, **params)
     return result
+
+##############################
+#
+# Anomoly detection
+#
+##############################
+#
+#
+#
+problem_chars_pattern = re.compile(r'[\p{Bidi_Control}\p{Cs}\p{Co}\p{Cn}\u0333\u3013\uFFFD]')
+# problem_chars_pattern = re.compile(r'[\p{Cf}\p{Cs}\p{Co}\p{Cn}\u0333\u3013\uFFFD]')
+problem_chars = ['\u0333', '\u3013', '\uFFFD']
+problem_chars.extend(list(icu.UnicodeSet(r'\p{Bidi_Control}')))
+# problem_chars.extend(list(icu.UnicodeSet(r'\p{Cf}')))
+problem_chars.extend(list(icu.UnicodeSet(r'\p{Cs}')))
+problem_chars.extend(list(icu.UnicodeSet(r'\p{Co}')))
+problem_chars.extend(list(icu.UnicodeSet(r'\p{Cn}')))
+
+def detect_anomalies(text: str) -> set[str]:
+    problematic = set()
+    if regex.search(problem_chars_pattern, text):
+        for char in problem_chars:
+            if char in text:
+                problematic.add(f"{codepoints(char)} ({unicodedataplus.name(char)})")
+    return problematic
+
+def register_anomalies(sub_field: str):
+    check = detect_anomalies(sub_field)
+    if check:
+        print(*sorted(check), sep="\n", end="\n\n")
+    return None
