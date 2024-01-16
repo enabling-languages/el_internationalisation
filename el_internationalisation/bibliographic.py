@@ -108,16 +108,12 @@ def clean_marc_subfield(item: str, lang: str, norm_form: str = "NFD", thai_lao_r
     else:
         item = normalise("NFD", item, use_icu=True)
     norm_form = norm_form.upper()
-    # if lang in thai_lao_rom_languages:
-    #     if thai_lao_rom:
-    #         item = clean_thai_lao_rom(item, thai_lao_rom)
-    if thai_lao_rom:
-        item = clean_thai_lao_rom(item, thai_lao_rom)
-    # if lang in cyrillic_rom_languages:
-    #     if cyrillic_rom:
-    #         item = clean_cyrillic_rom(item)
-    if cyrillic_rom:
-        item = clean_cyrillic_rom(item)
+    if lang in thai_lao_rom_languages:
+        if thai_lao_rom:
+            item = clean_thai_lao_rom(item, thai_lao_rom)
+    if lang in cyrillic_rom_languages:
+        if cyrillic_rom:
+            item = clean_cyrillic_rom(item)
     item = normalise(norm_form, item, use_icu=True) if norm_form != "NFD" else item
     return item
 
