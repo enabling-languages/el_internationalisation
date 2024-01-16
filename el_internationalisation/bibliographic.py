@@ -8,7 +8,7 @@ import icu
 
 # Languages to normalise : ISO-639-1 and ISO-639-2/B language codes.
 thai_lao_rom_languages = ["lao", "lo", "tha", "th"]
-cyrillic_rom_languages = ["be", "bel", "sla", "bg", "bul", "chu", "cu", "mk", "mac", "ru", "rus", "rue", "uz", "uzb"]
+cyrillic_rom_languages = ["abk", "be", "bel", "sla", "bg", "bul", "chu", "cu", "mk", "mac", "ru", "rus", "rue", "uz", "uzb"]
 
 ##############################
 #
@@ -108,12 +108,16 @@ def clean_marc_subfield(item: str, lang: str, norm_form: str = "NFD", thai_lao_r
     else:
         item = normalise("NFD", item, use_icu=True)
     norm_form = norm_form.upper()
-    if lang in thai_lao_rom_languages:
-        if thai_lao_rom:
-            item = clean_thai_lao_rom(item, thai_lao_rom)
-    if lang in cyrillic_rom_languages:
-        if cyrillic_rom:
-            item = clean_cyrillic_rom(item)
+    # if lang in thai_lao_rom_languages:
+    #     if thai_lao_rom:
+    #         item = clean_thai_lao_rom(item, thai_lao_rom)
+    if thai_lao_rom:
+        item = clean_thai_lao_rom(item, thai_lao_rom)
+    # if lang in cyrillic_rom_languages:
+    #     if cyrillic_rom:
+    #         item = clean_cyrillic_rom(item)
+    if cyrillic_rom:
+        item = clean_cyrillic_rom(item)
     item = normalise(norm_form, item, use_icu=True) if norm_form != "NFD" else item
     return item
 
