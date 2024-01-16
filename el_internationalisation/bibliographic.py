@@ -78,7 +78,7 @@ def clean_cyrillic_rom(item: str) -> str:
     Returns:
         str: Normalised string
     """
-    item - regex.sub(r'([tT])\uFE20([sS])\uFE21\u0307', r'\1\u0361\u034F\u0307\2', item)
+    item = regex.sub(r'([tT])\uFE20([sS])\uFE21\u0307', r'\1\u0361\u034F\u0307\2', item)
     item = regex.sub(r'([tT])\uFE20\u0307([sS])\uFE21', r'\1\u0361\u034F\u0307\2', item)
     item = regex.sub(r'([oO])\u0304\uFE20([tT])\uFE21', r'\1\u0304\u0361\2', item)
     item = regex.sub(r'([iI])\uFE20([eEoO])\u0328\uFE21', r'\1\u0361\2\u0328', item)
