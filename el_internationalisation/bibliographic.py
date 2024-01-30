@@ -8,7 +8,8 @@ import icu
 
 # Languages to normalise : ISO-639-1 and ISO-639-2/B language codes.
 thai_lao_rom_languages = ["lao", "lo", "tha", "th"]
-cyrillic_rom_languages = ["abk", "be", "bel", "sla", "bg", "bul", "chu", "cu", "mk", "mac", "ru", "rus", "rue", "uz", "uzb"]
+# cyrillic_rom_languages = ["abk", "be", "bel", "sla", "bg", "bul", "chu", "cu", "mk", "mac", "ru", "rus", "rue", "uz", "uzb"]
+cyrillic_rom_languages = ["ab","abk","abk","abq","ady","ady","alt","alt","alt","atv","av","av","ava","ava","ava","ba","bak","bak","be","bel","bel","bg","bua","bua","bua","bua","bua","bul","bul","bxm","bxr","bxu","ce","che","che","chm","chm","chm","chm","chu","chu","chv","chv","cjs","ckt","cu","cv","dar","dar","dng","ess","eve","evn","gag","gld","inh","inh","kaa","kaa","kaz","kaz","kbd","kbd","kca","khk","kir","kir","kjh","kk","koi","kpv","kpy","krc","krc","krl","krl","kum","kum","kv","ky","lbe","lez","lez","lit","lit","lit","lt","lt","mac","mdf","mdf","mhr","mk","mkd","mn","mn","mn","mns","mon","mon","mon","mon","mrj","mvf","myv","myv","niv","nog","nog","oav","olt","os","oss","oss","ro","rom","rom","ron","ru","rue","rum","rus","rus","sah","sah","sel","sel","sia","sjd","sjt","smi","smi","smi","tab","tat","tat","tg","tgk","tgk","tk","tt","ttt","tuk","tuk","tyv","tyv","ude","udm","udm","ug","uig","uig","uk","ukr","ukr","xal","xal","yrk"]
 
 ##############################
 #

@@ -518,9 +518,10 @@ def toNFKC_Casefold(text, use_icu=False):
     return unicodedataplus.normalize("NFC", unicodedataplus.normalize('NFKC', text).casefold())
 NFKC_CF = toNFKC_Casefold
 
-def toCasefold(text, use_icu=False):
+def toCasefold(text, use_icu=False, turkic=False):
     if use_icu:
-        return str(icu.UnicodeString(text).foldCase())
+        option = 1 if turkic else 0
+        return str(icu.UnicodeString(text).foldCase(option))
     return  text.casefold()
 fold_case = toCasefold
 
@@ -871,9 +872,10 @@ class uString(UserString):
 
     capitalize = capitalise
 
-    def casefold(self):
+    def casefold(self, turkic = False):
         # return str(icu.UnicodeString(self.data).foldCase())
-        self.data = str(icu.UnicodeString(self.data).foldCase())
+        option = 1 if turkic else 0
+        self.data = str(icu.UnicodeString(self.data).foldCase(option))
         self._set_parameters()
         return self
 
@@ -881,8 +883,8 @@ class uString(UserString):
     ci = casefold
 
     # Canonical case-insensitive
-    def cci(self):
-        self.data = toNFD(toCasefold(toNFD(self.data, use_icu=True), use_icu=True), use_icu=True)
+    def cci(self, turkic=False):
+        self.data = toNFD(toCasefold(toNFD(self.data, use_icu=True), use_icu=True, turkic = turkic), use_icu=True)
         self._set_parameters()
         return self
 
