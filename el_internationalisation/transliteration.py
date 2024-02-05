@@ -87,23 +87,21 @@ def translit_icu(source, transform):
         return [transformer.transliterate(item) for item in source]
     return transformer.transliterate(source)
 
-# READ transliteration rules from LDML file
+# READ transliteration rules from LDML file, either locale file path or URL
 def read_ldml_rules(ldml_file):
     """Read transliteration rules from LDML file
 
     Args:
-        ldml_file (str): LDML file containing transformation rules.
+        ldml_file (str): Locale path or URL for LDML file containing transformation rules.
 
     Returns:
         tuple[str, str, str]: Tuple containing rules and forward and reverse labels.
     """
-    import xml.etree.ElementTree as ET
-    def get_ldml_rules(rules_file):
+    def extract_rules(ldml_xml, rules_file):
         rules = ''
-        doc = ET.parse(rules_file)
-        r = doc.find('./supplementalData/transforms/transform')
+        r = ldml_xml.find('./supplementalData/transforms/transform')
         if r is None:
-            r = doc.find('./transforms/transform')
+            r = ldml_xml.find('./transforms/transform')
         if r is None:
             sys.stderr(f"Can't find transform in {rules_file}")
         pattern = regex.compile(r'[ \t]{2,}|[ ]*#.+\n')
@@ -115,7 +113,16 @@ def read_ldml_rules(ldml_file):
         if 'backwardAlias' in r.attrib:
             reverse_name = r.attrib['backwardAlias'].split()[0]
         return (rules, rules_name, reverse_name)
-    rules_tuple = get_ldml_rules(ldml_file)
+
+    def get_ldml(rules_file):
+        if rules_file.startswith(('https://', 'http://')):
+            r=requests.get(rules_file)
+            doc = ET.ElementTree(ET.fromstring(r.content.decode('UTF-8')))
+        else:
+            doc = ET.parse(rules_file)
+        return extract_rules(doc, rules_file)
+
+    rules_tuple = get_ldml(ldml_file)
     return rules_tuple
 
 # Register transformer form LDML file
