@@ -2,6 +2,8 @@ import regex, icu, collections, pathlib, sys
 from .transliteration_data import SUPPORTED_TRANSLITERATORS, TRANSLIT_DATA
 from .ustrings import normalise
 import copy
+import requests
+import xml.etree.ElementTree as ET
 
 # TODO:
 #  * add type hinting
