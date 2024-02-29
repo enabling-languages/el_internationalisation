@@ -18,7 +18,7 @@ from typing import Self
 #   * add type hinting
 #   * add DocStrings
 
-VERSION = "0.5.6"
+VERSION = "0.5.17"
 UD_VERSION = unicodedataplus.unidata_version
 ICU_VERSION = icu.ICU_VERSION
 PYICU_VERSION = icu.VERSION
@@ -661,7 +661,7 @@ def compatibility_caseless_match(x, y, use_icu=False):
 # Identifier caseless match for a string Y if and only if: 
 #   toNFKC_Casefold(NFD(X)) = toNFKC_Casefold(NFD(Y))`
 def identifier_caseless_match(x, y, use_icu=False):
-    return toNFKC_Casefold(toNFD(x, use_icu=use_icu)) == toNFKC_Casefold(toNFD(y, use_icu=use_icu))
+    return toNFKC_Casefold(toNFD(x, use_icu=use_icu), use_icu=use_icu) == toNFKC_Casefold(toNFD(y, use_icu=use_icu), use_icu=use_icu)
 
 
 ####################
@@ -849,16 +849,21 @@ class uString(UserString):
     def available_transforms(self):
         return list(icu.Transliterator.getAvailableIDs())
 
-    def canonical_equivalents(self):
+    def canonical_equivalents(self, verbose=False):
         deprecated = regex.compile(r'[\u0340\u0341]')
         # graphemes_list = gr(self.data)
         results = []
+        results_cp = []
         for grapheme in self._graphemes:
             ci = icu.CanonicalIterator(grapheme)
             equivalents = [char for char in ci if not regex.search(deprecated, char)]
-            equivalents = [codepoints(chars, prefix=True) for chars in equivalents]
-            results.append((grapheme, equivalents))
+            equivalents_cp = [codepoints(chars, prefix=False) for chars in equivalents]
+            results_cp.append((grapheme, equivalents_cp))
+            results.append(equivalents)
+        if verbose:
+            return results_cp
         return results
+        # https://stackoverflow.com/questions/3308102/how-to-extract-the-n-th-elements-from-a-list-of-tuples
 
     def capitalise(self, locale = "default"):
         loc = self._set_locale(locale)
