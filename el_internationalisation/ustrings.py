@@ -13,12 +13,13 @@ import regex
 import unicodedataplus
 from .bidi import bidi_envelope, is_bidi
 from typing import Self
+from functools import partial
 
 # TODO:
 #   * add type hinting
 #   * add DocStrings
 
-VERSION = "0.5.17"
+VERSION = "0.6.0"
 UD_VERSION = unicodedataplus.unidata_version
 ICU_VERSION = icu.ICU_VERSION
 PYICU_VERSION = icu.VERSION
@@ -772,6 +773,43 @@ def foldCase(s, engine="core"):
         result = s
     return result
 
+####################
+#
+# tokenise():
+#   Create a list of tokens in a string.
+#
+####################
+
+def get_boundaries(text, bi):
+    bi.setText(text)
+    boundaries = [*bi]
+    boundaries.insert(0, 0)
+    return boundaries
+
+def tokenise(text, locale=icu.Locale.getRoot(), mode="word"):
+    """Tokenise a string: character, grapheme, word and sentense tokenisation supported.
+
+    Args:
+        text (_str_): string to tokenise.
+        locale (_icu.Locale_, optional): icu.Locale to use for tokenisation. Defaults to icu.Locale.getRoot().
+        mode (str, optional): Character, grapheme, word or sentense tokenisation to perform. Defaults to "word".
+
+    Returns:
+        _list_: list of tokens in string.
+    """
+    match mode.lower():
+        case "character":
+            return list(text)
+        case "grapheme":
+            bi = icu.BreakIterator.createCharacterInstance(locale)
+        case "sentence":
+            bi = icu.BreakIterator.createSentenceInstance(locale)
+        case _:
+            bi = icu.BreakIterator.createWordInstance(locale)
+    boundary_indices = get_boundaries(text, bi)
+    return [text[boundary_indices[i]:boundary_indices[i+1]] for i in range(len(boundary_indices)-1)]
+
+tokenize = tokenise
 
 ####################
 #
@@ -779,11 +817,20 @@ def foldCase(s, engine="core"):
 #   Create a list of extended grapheme clusters in a string.
 #
 ####################
-def graphemes(text):
-    return regex.findall(r'\X',text)
+# def graphemes(text):
+#     return regex.findall(r'\X',text)
+
+graphemes = partial(tokenise, mode="graphemes")
+graphemes.__doc__ = """Grapheme tokenisation of string.
+
+    Args:
+        text (_str_): string to be tokenised
+        locale (_icu.Locale_, optional): ICU locale to use in tokenisation. Defaults to icu.Locale.getRoot().
+
+    Returns:
+        _list_: list of graphemes
+    """
 gr = graphemes
-
-
 
 ####################
 #
@@ -1224,16 +1271,17 @@ class uString(UserString):
         self._set_parameters()
         return self
 
-    def token_frequencies(self, mode="words"):
-        # Frequencies of character, grapheme, or word (space separated) tokens in uString object
+    def token_frequencies(self, mode="words", locale=icu.Locale.getRoot()):
+        # Frequencies of character, grapheme, or word tokens in uString object
         tokens = []
         data = self.data
-        if mode == "characters":
-            tokens = [c for c in data]
-        elif mode == "graphemes":
-            tokens = self._graphemes
-        else:
-            tokens = data.split()
+        match mode:
+            case "characters":
+                tokens = [c for c in data]
+            case "graphemes":
+                tokens = self._graphemes
+            case _:
+                tokens = tokenise(data, locale=locale)
         counts = Counter(tokens)
         return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
 
@@ -1286,7 +1334,6 @@ class uString(UserString):
 #    * isgraph  -> uString.isgraph
 #    * ispunct  -> uString.ispunct
 #    * istitle  -> uString.istitle
-#    * isxdigit  -> uString.isxdigit
 
 # 'capitalize', 'center', 'count', 'encode', 'endswith', 'expandtabs', 'find', 'format', 'format_map', 'index', 'isdecimal', 'isdigit', 'isnumeric', 'istitle', 'isupper', 'join', 'ljust', 'maketrans', 'partition', 'removeprefix', 'removesuffix', 'rfind', 'rindex', 'rjust', 'rpartition', 'rsplit',  'splitlines', 'startswith', 'swapcase', 'translate', 'zfill'
 
