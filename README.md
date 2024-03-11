@@ -8,7 +8,7 @@ The package requires [icu4c]() to be installed on workstation or server.
 To install or upgrade:
 
 ```zsh
-pip install -U git+https://github.com/enabling-languages/el_internationalisation.git#egg=el_internationalisation
+pip install -U git+https://github.com/enabling-languages/el_internationalisation.git
 ```
 
 To uninstall:
