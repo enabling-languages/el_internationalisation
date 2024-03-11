@@ -1,7 +1,7 @@
 ##########################################################
-# el_strings
+# el_internationalisation.ustrings
 #
-#   © Enabling Languages 2023
+#   © Enabling Languages 2023-2024
 #   Released under the MIT License.
 #
 ##########################################################
@@ -19,7 +19,7 @@ from functools import partial
 #   * add type hinting
 #   * add DocStrings
 
-VERSION = "0.6.1"
+VERSION = "0.6.2"
 UD_VERSION = unicodedataplus.unidata_version
 ICU_VERSION = icu.ICU_VERSION
 PYICU_VERSION = icu.VERSION
@@ -118,11 +118,8 @@ def codepointsToChar(codepoints):
         str: Unicode characters represented by the codepoints
     """
     codepoints = codepoints.lower().replace("u+", "")
-    cplist = regex.split(", |,| ", codepoints)
-    results = ""
-    for c in cplist:
-        results += chr(int(c, 16))
-    return results
+    cplist = regex.split(r",\s*|\s+", codepoints)
+    return "".join([chr(int(c, 16)) for c in cplist])
     # return "".join([chr(int(i.removeprefix('u+'), 16)) for i in regex.split(r'[,;]\s?|\s+', cps.lower())])
 
 def canonical_equivalents_str(ustring):
@@ -820,7 +817,7 @@ tokenize = tokenise
 # def graphemes(text):
 #     return regex.findall(r'\X',text)
 
-graphemes = partial(tokenise, mode="graphemes")
+graphemes = partial(tokenise, mode="grapheme")
 graphemes.__doc__ = """Grapheme tokenisation of string.
 
     Args:
