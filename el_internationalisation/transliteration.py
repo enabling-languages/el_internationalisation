@@ -55,7 +55,7 @@ def el_transliterate(source, lang, dir = "forward", nf = DEFAULT_NF):
         word_dict = {normalise(DEFAULT_NF, k): normalise(DEFAULT_NF, v) for k, v in word_dict.items()}
         label = translit_table[2]
         if dir == "reverse":
-            source_split = regex.split('(\W+?)', source)
+            source_split = regex.split(r'(\W+?)', source)
             res = "".join(word_dict.get(ele, ele) for ele in source_split)
         else:
             from functools import reduce
@@ -221,7 +221,7 @@ def translit_dict(source, lang, dir = "forward", nf = DEFAULT_NF):
         word_dict = {normalise(DEFAULT_NF, k): normalise(DEFAULT_NF, v) for k, v in word_dict.items()}
         label = translit_table[2]
         if dir == "reverse":
-            source_split = regex.split('(\W+?)', source)
+            source_split = regex.split(r'(\W+?)', source)
             res = "".join(word_dict.get(ele, ele) for ele in source_split)
         else:
             from functools import reduce

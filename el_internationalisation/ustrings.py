@@ -19,7 +19,7 @@ from functools import partial
 #   * add type hinting
 #   * add DocStrings
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 UD_VERSION = unicodedataplus.unidata_version
 ICU_VERSION = icu.ICU_VERSION
 PYICU_VERSION = icu.VERSION
