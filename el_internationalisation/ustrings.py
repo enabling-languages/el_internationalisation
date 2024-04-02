@@ -20,7 +20,7 @@ from wcwidth import wcswidth
 #   * add type hinting
 #   * add DocStrings
 
-VERSION = "0.6.3"
+VERSION = "0.6.4"
 UD_VERSION = unicodedataplus.unidata_version
 ICU_VERSION = icu.ICU_VERSION
 PYICU_VERSION = icu.VERSION
@@ -971,7 +971,14 @@ class uString(UserString):
         else:
             return ' '.join(f"U+{ord(c):04X}" for c in self.data) if prefix else ' '.join(f"{ord(c):04X}" for c in self.data)
 
-    # count - from UserString
+    def count(self, sub, start=None, end=None, use_regex=False, overlapping=False):
+        text = self.data
+        if use_regex:
+            pattern = f'(?=({sub}))' if overlapping else sub
+            text = text[start:end] if not start and not end else text
+            return len(regex.findall(pattern, text))
+        return text.count(sub, start, end)
+
     # encode - from UserString
     # endswith - from UserString
 
