@@ -16,12 +16,13 @@ import unicodedataplus, regex, locale, icu
 #
 # To Western Arabic digits
 #
-def convert_digits(text, sep = (",", ".")):
-    """To Western Arabic digits
+def convert_digits(text, sep = (",", "."), use_icu=False):
+    """Convert formatted number, including native digits, to Western Arabic digits.
 
     Args:
-        text (str): _description_
+        text (str): Formatted number as string.
         sep (Tuple[str, str], optional): _description_. Defaults to (",", ".").
+        use_icu (bool): Use ICU for number conversion if True. Defaults to False.
 
     Returns:
         Union[int, float, None]: integer or float equivalent of the string representation of th input number
@@ -30,7 +31,10 @@ def convert_digits(text, sep = (",", ".")):
     tsep, dsep = sep
     if nd.match(text):
         text = text.replace(tsep, "")
-        text = ''.join([str(unicodedataplus.decimal(c, c)) for c in text])
+        if use_icu:
+            text = ''.join([str(icu.Char().digit(c)) if c.isdigit() else c  for c in text])
+        else:
+            text = ''.join([str(unicodedataplus.decimal(c, c)) for c in text])
         if dsep in text:
             return float(text.replace(dsep, ".")) if dsep != "." else float(text)
         return int(text)
@@ -188,7 +192,20 @@ convert_to_kurdish_ns = convert_to_arab_ns
 #   icu_formatted_digits(112345.05, loc=icu.icu.Locale.forLanguageTag("ckb-IQ-u-nu-arab"))
 #   icu_formatted_digits(112345.05, loc=icu.icu.Locale.forLanguageTag("ckb-IR-u-nu-arabext"))
 
-def icu_formatted_digits(digit, p=None, loc=None):
+
+def icu_formatted_digits(digit, p=None, loc=icu.Locale.getRoot()):
+    """_summary_
+
+    Args:
+        digit (int or float): _description_
+        p (int, optional): Precision. Defaults to None.
+        loc (icu.Locale, optional): Locale object for formatted numbers. Defaults to icu Root Locale.
+
+    Returns:
+        _type_: _description_
+    """
+    # TODO:
+    #   * add support for precision
     if loc is None:
         loc = icu.Locale.getRoot()
     if int(icu.ICU_MAX_MAJOR_VERSION) >= 60:
@@ -198,4 +215,31 @@ def icu_formatted_digits(digit, p=None, loc=None):
         formatter = icu.NumberFormat.createInstance(loc)
         r = formatter.format(digit)
     return r
+
+# EXAMPLES
+#
+# import el_internationalisation as eli
+#
+# eli.convert_digits('٩٢٦٥')
+# 9265
+# eli.convert_digits('٩٢٦٥', use_icu=True)
+# 9265
+#
+# eli.convert_digits('٣٫١٤١٥٩٢٦٥٣٥٨', sep=('', "\u066B"))
+# 3.14159265358
+# eli.convert_digits('٣٫١٤١٥٩٢٦٥٣٥٨', sep=('', "\u066B"), use_icu=True)
+# 3.14159265358
+#
+# icu_formatted_digits(1234563133, loc=icu.Locale('en_IN'))
+# '1,23,45,63,133'
+#
+# icu_formatted_digits(1234563133, loc=icu.Locale('hi_IN'))
+# '1,23,45,63,133'
+#
+# icu_formatted_digits(1234563133, loc=icu.Locale.forLanguageTag('hi-IN-u-nu-deva'))
+# '१,२३,४५,६३,१३३'
+#
+# locale = icu.Locale.forLanguageTag(lang)
+# icu_formatted_digits(12345, loc=locale)
+# '१२,३४५'
 

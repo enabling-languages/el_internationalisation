@@ -14,12 +14,13 @@ import unicodedataplus
 from .bidi import bidi_envelope, is_bidi
 from typing import Self
 from functools import partial
+from wcwidth import wcswidth
 
 # TODO:
 #   * add type hinting
 #   * add DocStrings
 
-VERSION = "0.6.2"
+VERSION = "0.6.3"
 UD_VERSION = unicodedataplus.unidata_version
 ICU_VERSION = icu.ICU_VERSION
 PYICU_VERSION = icu.VERSION
@@ -195,11 +196,11 @@ def scan_bidi(text):
         Tuple[bool, bool, bool, bool, bool, Set[Optional[str]], bool]: Summary of bidi support analysis
     """
     bidi_status = is_bidi(text)
-    isolates = bool(regex.search('[\u2066\u2067\u2068]', text)) and bool(regex.search('\u2069', text))
-    embeddings = bool(regex.search('[\u202A\u202B]', text)) and bool(regex.search('\u202C', text))
-    marks = bool(regex.search('[\u200E\u200F]', text))
-    overrides = bool(regex.search('[\u202D\u202E]', text)) and bool(regex.search('\u202C', text))
-    formating_characters = set(regex.findall('[\u200e\u200f\u202a-\u202e\u2066-\u2069]', text))
+    isolates = bool(regex.search(r'[\u2066\u2067\u2068]', text)) and bool(regex.search(r'\u2069', text))
+    embeddings = bool(regex.search(r'[\u202A\u202B]', text)) and bool(regex.search(r'\u202C', text))
+    marks = bool(regex.search(r'[\u200E\u200F]', text))
+    overrides = bool(regex.search(r'[\u202D\u202E]', text)) and bool(regex.search(r'\u202C', text))
+    formating_characters = set(regex.findall(r'[\u200e\u200f\u202a-\u202e\u2066-\u2069]', text))
     formating_characters = {f"U+{ord(c):04X} ({unicodedataplus.name(c,'-')})" for c in formating_characters if formating_characters is not None}
     presentation_forms = has_presentation_forms(text)
     return (bidi_status, isolates, embeddings, marks, overrides, formating_characters, presentation_forms)
@@ -354,7 +355,7 @@ class ngraphs:
         pattern = r'[^\p{P}\p{Z}]{' + str(self.size) + r'}'
         r = {}
         if self.graphemes:
-            gr = regex.findall(r'\X', self.text)
+            gr = graphemes(self.text)
             c = {"".join(i for i in k): v for k, v in dict(Counter(tuple(gr)[idx : idx + self.size] for idx in range(len(gr) - 1))).items()}
         else:
             c = Counter(self.text[idx : idx + self.size] for idx in range(len(self.text) - 1))
@@ -376,11 +377,11 @@ class ngraphs:
         return dict(list(self.data.items())[0: self.count])
 
     def to_list(self):
-        # Convert data keys to list, i.e. list of ngraths
+        # Convert data keys to list, i.e. list of ngraphs
         return [i for i in self.data.keys()]
 
     def to_tuples(self):
-        # Convert data dictionary to a list of tuples.
+        # Convert data dictionary to a list of tuples of ngraphs.
         # return [(k, v, self._percentage(v)) for k, v in self.data.items()]
         return [(k, v) for k, v in self.data.items()]
 
@@ -638,6 +639,8 @@ def simple_match(x, y, use_icu=False):
 
 # Cased matching
 #   toLower(NFD(X)) = toLower(NFD(Y))
+# TODO:
+#    add lowercaseing
 def cased_match(x, y, use_icu=False):
     return toNFD(x, use_icu=use_icu) == toNFD(y, use_icu=use_icu)
 
@@ -648,17 +651,17 @@ def caseless_match(x, y, use_icu=False):
 
 # Canonical caseless matching
 #   NFD(toCasefold(NFD(X))) = NFD(toCasefold(NFD(Y)))
-def canonical_caseless_match(x, y, use_icu=False):
-    return toNFD(toCasefold(toNFD(x, use_icu=use_icu), use_icu=use_icu), use_icu=use_icu) == toNFD(toCasefold(toNFD(y, use_icu=use_icu), use_icu=use_icu), use_icu=use_icu)
+def canonical_caseless_match(x, y, use_icu=False, turkic=False):
+    return toNFD(toCasefold(toNFD(x, use_icu=use_icu), use_icu=use_icu, turkic=turkic), use_icu=use_icu) == toNFD(toCasefold(toNFD(y, use_icu=use_icu), use_icu=use_icu, turkic=turkic), use_icu=use_icu)
 
 # Compatibility caseless match
 #   NFKD(toCasefold(NFKD(toCasefold(NFD(X))))) = NFKD(toCasefold(NFKD(toCasefold(NFD(Y)))))
-def compatibility_caseless_match(x, y, use_icu=False):
-    return toNFKD(toCasefold(toNFKD(toCasefold(toNFD(x, use_icu=use_icu), use_icu=use_icu), use_icu=use_icu), use_icu=use_icu), use_icu=use_icu) == toNFKD(toCasefold(toNFKD(toCasefold(toNFD(y, use_icu=use_icu), use_icu=use_icu), use_icu=use_icu), use_icu=use_icu), use_icu=use_icu)
+def compatibility_caseless_match(x, y, use_icu=False, turkic=False):
+    return toNFKD(toCasefold(toNFKD(toCasefold(toNFD(x, use_icu=use_icu), use_icu=use_icu, turkic=turkic), use_icu=use_icu), use_icu=use_icu), use_icu=use_icu) == toNFKD(toCasefold(toNFKD(toCasefold(toNFD(y, use_icu=use_icu), use_icu=use_icu, turkic=turkic), use_icu=use_icu), use_icu=use_icu), use_icu=use_icu)
 
 # Identifier caseless match for a string Y if and only if: 
 #   toNFKC_Casefold(NFD(X)) = toNFKC_Casefold(NFD(Y))`
-def identifier_caseless_match(x, y, use_icu=False):
+def identifier_caseless_match(x, y, use_icu=False, turkic=False):
     return toNFKC_Casefold(toNFD(x, use_icu=use_icu), use_icu=use_icu) == toNFKC_Casefold(toNFD(y, use_icu=use_icu), use_icu=use_icu)
 
 
@@ -777,14 +780,14 @@ def foldCase(s, engine="core"):
 #
 ####################
 
-def get_boundaries(text, bi):
-    bi.setText(text)
-    boundaries = [*bi]
+def get_boundaries(text, brkiter):
+    brkiter.setText(text)
+    boundaries = [*brkiter]
     boundaries.insert(0, 0)
     return boundaries
 
 def tokenise(text, locale=icu.Locale.getRoot(), mode="word"):
-    """Tokenise a string: character, grapheme, word and sentense tokenisation supported.
+    """Tokenise a string based on locale: character, grapheme, word and sentense tokenisation supported.
 
     Args:
         text (_str_): string to tokenise.
@@ -807,6 +810,21 @@ def tokenise(text, locale=icu.Locale.getRoot(), mode="word"):
     return [text[boundary_indices[i]:boundary_indices[i+1]] for i in range(len(boundary_indices)-1)]
 
 tokenize = tokenise
+
+def tokenise_bi(text, brkiter):
+    """Tokenise a string using specified break iterator.
+
+    Args:
+        text (_str_): string to tokenise.
+        brkiter (_icu.BreakIterator_, optional): ICU break iterator to use for tokenisation.
+
+    Returns:
+        list: Tokens in string.
+    """
+    boundary_indices = get_boundaries(text, brkiter)
+    return [text[boundary_indices[i]:boundary_indices[i+1]] for i in range(len(boundary_indices)-1)]
+
+tokenize_bi = tokenise_bi
 
 ####################
 #
@@ -861,6 +879,11 @@ class uString(UserString):
         for char in self.data:
             scripts_in_text.add(unicodedataplus.script(char))
         return True if bicameral_scripts & scripts_in_text else False
+
+    def _adjusted_width(self, n:int, text:str)->int:
+        data = self.data
+        adjustment: int = len(data) - wcswidth(data)
+        return n + adjustment
 
     def _get_binary_property_value(self, property):
         status = []
@@ -937,7 +960,10 @@ class uString(UserString):
         self._set_parameters()
         return self
 
-    # center - from UserString
+    def center(self, width: int, fillchar:str = " ") -> str:
+        data = self.data
+        return data.center(self._adjusted_width(width, data), fillchar)
+    centre = center
 
     def codepoints(self, prefix = False, extended = False):
         if extended:
@@ -958,6 +984,9 @@ class uString(UserString):
     # find - from UserString
     # format - from UserString
     # format_map - from UserString
+
+    def first_strong(self):
+        return first_strong(self.data)
 
     def fullwidth(self):
         # return icu.Transliterator.createInstance('Halfwidth-Fullwidth').transliterate(self.data)
@@ -1074,7 +1103,6 @@ class uString(UserString):
             words_status.append(True) if word == str(icu.UnicodeString(word).toTitle(loc)) else words_status.append(False)
         return all(words_status)
 
-
     def isupper(self):
         # Determines whether the specified code point has the general category "Lu" (uppercase letter).
         # This misses some characters that are also uppercase but have a different general category value. In order # to include those, use UCHAR_UPPERCASE.
@@ -1120,7 +1148,10 @@ class uString(UserString):
         return all(status)
 
     # join - from UserString
-    # ljust - from UserString
+
+    def ljust(self, width: int, fillchar:str = " ") -> str:
+        data = self.data
+        return data.ljust(self._adjusted_width(width, data), fillchar)
 
     def lower(self, locale = "default"):
         # return str(icu.UnicodeString(self.data).toLower(icu.Locale(locale))) if locale else str(icu.UnicodeString(self.data).toLower())
@@ -1202,7 +1233,11 @@ class uString(UserString):
 
     # rfind - from UserString
     # rindex - from UserString
-    # rjust - from UserString
+
+    def rjust(self, width: int, fillchar:str = " ") -> str:
+        data = self.data
+        return data.rjust(self._adjusted_width(width, data), fillchar)
+
     # rpartition - from UserString
 
     def rsplit(self, sep=None, maxsplit=-1, flags=0):
@@ -1268,17 +1303,18 @@ class uString(UserString):
         self._set_parameters()
         return self
 
-    def token_frequencies(self, mode="words", locale=icu.Locale.getRoot()):
+    def token_frequencies(self, mode="word", locale="default"):
         # Frequencies of character, grapheme, or word tokens in uString object
+        loc = self._set_locale(locale)
         tokens = []
         data = self.data
         match mode:
-            case "characters":
+            case "character":
                 tokens = [c for c in data]
-            case "graphemes":
+            case "grapheme":
                 tokens = self._graphemes
             case _:
-                tokens = tokenise(data, locale=locale)
+                tokens = tokenise(data, locale=loc)
         counts = Counter(tokens)
         return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
 

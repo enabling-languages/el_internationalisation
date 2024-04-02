@@ -127,7 +127,7 @@ def character_requirements(languages: List[str], ngraphs: bool = False, keep_gra
         if auxiliary:
             us.addAll(ld.getExemplarSet(icu.ULocaleDataExemplarSetType.ES_AUXILIARY))
         if not basic_latin:
-            us.removeAll(icu.UnicodeSet('\p{Ascii}'))
+            us.removeAll(icu.UnicodeSet(r'\p{Ascii}'))
         letters = [*letters, *us]
     if not ngraphs:
         if keep_graphemes:
