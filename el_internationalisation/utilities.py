@@ -1,7 +1,6 @@
-from typing import List
+from typing import List, Optional
 import icu
 from .ustrings import gr
-from typing import Optional
 
 def list_to_string(items, sep = ', ', drop_bool = True):
     """Convert list to string

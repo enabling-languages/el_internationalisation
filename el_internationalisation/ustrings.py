@@ -11,8 +11,8 @@ import icu
 import prettytable
 import regex
 import unicodedataplus
-from .bidi import bidi_envelope, is_bidi
-from typing import Self
+from .bidi import bidi_envelope, is_bidi, first_strong, dominant_strong_direction
+from typing import Self, Generator
 from functools import partial
 from wcwidth import wcswidth
 
@@ -20,7 +20,7 @@ from wcwidth import wcswidth
 #   * add type hinting
 #   * add DocStrings
 
-VERSION = "0.6.4"
+VERSION = "0.6.5"
 UD_VERSION = unicodedataplus.unidata_version
 ICU_VERSION = icu.ICU_VERSION
 PYICU_VERSION = icu.VERSION
@@ -176,51 +176,6 @@ def unicode_data(text, ce=False):
     return None
 
 udata = unicode_data
-
-def scan_bidi(text):
-    """Analyse string for bidi support.
-
-    The script returns a tuple indicating if sting contains bidirectional text and if it uses bidirectional formatting characters. Returns a tuple of:
-      * bidi_status - indicates if RTL characters in string,
-      * isolates - indicates if bidi isolation formatting characters are in string,
-      * embeddings - indicates if bidi embedding formatting characters are in string,
-      * marks - indicates if bidi marks are in the string,
-      * overrides - indicates if bidi embedding formatting characters are in string,
-      * formatting_characters - a set of bidirectional formatting characters in string.
-      * presentation_forms - indicates if presentation forms are in the string.
-
-    Args:
-        text (str): Text to analyse
-
-    Returns:
-        Tuple[bool, bool, bool, bool, bool, Set[Optional[str]], bool]: Summary of bidi support analysis
-    """
-    bidi_status = is_bidi(text)
-    isolates = bool(regex.search(r'[\u2066\u2067\u2068]', text)) and bool(regex.search(r'\u2069', text))
-    embeddings = bool(regex.search(r'[\u202A\u202B]', text)) and bool(regex.search(r'\u202C', text))
-    marks = bool(regex.search(r'[\u200E\u200F]', text))
-    overrides = bool(regex.search(r'[\u202D\u202E]', text)) and bool(regex.search(r'\u202C', text))
-    formating_characters = set(regex.findall(r'[\u200e\u200f\u202a-\u202e\u2066-\u2069]', text))
-    formating_characters = {f"U+{ord(c):04X} ({unicodedataplus.name(c,'-')})" for c in formating_characters if formating_characters is not None}
-    presentation_forms = has_presentation_forms(text)
-    return (bidi_status, isolates, embeddings, marks, overrides, formating_characters, presentation_forms)
-
-scan = scan_bidi
-
-def first_strong(s):
-    properties = ['ltr' if v == "L" else 'rtl' if v in ["AL", "R"] else "-" for v in [unicodedataplus.bidirectional(c) for c in list(s)]]
-    for value in properties:
-        if value == "ltr":
-            return "ltr"
-        elif value == "rtl":
-            return "rtl"
-    return None
-
-def dominant_strong_direction(s):
-    count = Counter([unicodedataplus.bidirectional(c) for c in list(s)])
-    rtl_count = count['R'] + count['AL'] + count['RLE'] + count["RLI"]
-    ltr_count = count['L'] + count['LRE'] + count["LRI"] 
-    return "rtl" if rtl_count > ltr_count else "ltr"
 
 def codepoint_names(text):
     return [f"U+{ord(c):04X} ({unicodedataplus.name(c,'-')})" for c in text]
@@ -517,11 +472,13 @@ def toNFKC_Casefold(text, use_icu=False):
     return unicodedataplus.normalize("NFC", unicodedataplus.normalize('NFKC', text).casefold())
 NFKC_CF = toNFKC_Casefold
 
-def toCasefold(text, use_icu=False, turkic=False):
+def toCasefold(text: str, use_icu: bool = True, turkic: bool = False) -> str:
     if use_icu:
-        option = 1 if turkic else 0
-        return str(icu.UnicodeString(text).foldCase(option))
+        option: int = 1 if turkic else 0
+        # return str(icu.UnicodeString(text).foldCase(option))
+        return icu.CaseMap.fold(option, text)
     return  text.casefold()
+
 fold_case = toCasefold
 
 # Replace values matching dictionary keys with values
@@ -664,26 +621,6 @@ def compatibility_caseless_match(x, y, use_icu=False, turkic=False):
 def identifier_caseless_match(x, y, use_icu=False, turkic=False):
     return toNFKC_Casefold(toNFD(x, use_icu=use_icu), use_icu=use_icu) == toNFKC_Casefold(toNFD(y, use_icu=use_icu), use_icu=use_icu)
 
-
-####################
-#
-# Clean presentation forms
-#
-#    For Latin and Armenian scripts, use either folding=True or folding=False (default), 
-#    while for Arabic and Hebrew scripts, use folding=False.
-#
-####################
-
-def has_presentation_forms(text):
-    pattern = r'([\p{InAlphabetic_Presentation_Forms}\p{InArabic_Presentation_Forms-A}\p{InArabic_Presentation_Forms-B}]+)'
-    return bool(regex.findall(pattern, text))
-
-def clean_presentation_forms(text, folding=False):
-    def clean_pf(match, folding):
-        return  match.group(1).casefold() if folding else unicodedataplus.normalize("NFKC", match.group(1))
-    pattern = r'([\p{InAlphabetic_Presentation_Forms}\p{InArabic_Presentation_Forms-A}\p{InArabic_Presentation_Forms-B}]+)'
-    return regex.sub(pattern, lambda match, folding=folding: clean_pf(match, folding), text)
-
 ####################
 #
 # Turkish casing implemented without module dependencies.
@@ -691,13 +628,43 @@ def clean_presentation_forms(text, folding=False):
 #
 ####################
 
+def multiple_replace(string, rep_dict):
+    pattern = regex.compile("|".join([regex.escape(k) for k in sorted(rep_dict,key=len,reverse=True)]), flags=regex.DOTALL)
+    return pattern.sub(lambda x: rep_dict[x.group(0)], string)
+
+tr_tolower_replacements = {'I':'ı', 'İ':'i'}
+tr_toupper_replacements = {'ı':'I', 'i':'İ'}
+
 # To lowercase
-def kucukharfyap(s):
-    return unicodedataplus.normalize("NFC", s).replace('İ', 'i').replace('I', 'ı').lower()
+def trLower(text: str) -> str:
+    text = normalise("NFC", text, use_icu=True)
+    return multiple_replace(text, tr_tolower_replacements).lower()
+
+def trCasefold(text: str) -> str:
+    text = normalise("NFC", text, use_icu=True)
+    return multiple_replace(text, tr_tolower_replacements).casefold()
 
 # To uppercase
-def buyukharfyap(s):
-    return unicodedataplus.normalize("NFC", s).replace('ı', 'I').replace('i', 'İ').upper()
+def trUpper(text:str) -> str:
+    text = normalise("NFC", text, use_icu=True)
+    return multiple_replace(text, tr_toupper_replacements).upper()
+
+# To titlecase
+def trTitle(text: str) -> str:
+    text = normalise("NFC", text, use_icu=True)
+    words: list[str] = text.split()
+    tr_text: list[str] = []
+    for word in words:
+        tr_text.append(trUpper(word[0]) + trLower(word[1:]))
+    return " ".join(tr_text)
+
+# To Sentence casing
+def trSentence(text: str) -> str:
+    text = normalise("NFC", text, use_icu=True)
+    words: list[str] = text.split(' ', 1)
+    words[0] = trUpper(words[0])
+    words[1] = trLower(words[1])
+    return " ".join(words)
 
 ####################
 #
@@ -706,20 +673,30 @@ def buyukharfyap(s):
 #
 ####################
 
-def toLower(s, use_icu=True, loc=icu.Locale.getRoot()):
+def toLower(text: str, use_icu: bool = True, loc=icu.Locale.getRoot()) -> str:
     if not use_icu:
-        return s.lower()
-    return str(icu.UnicodeString(s).toLower(loc))
+        return text.lower()
+    # return str(icu.UnicodeString(text).toLower(loc))
+    return icu.CaseMap.toLower(loc, text)
 
-def toUpper(s, use_icu=True, loc=icu.Locale.getRoot()):
+def toUpper(text: str, use_icu: bool = True, loc=icu.Locale.getRoot()) -> str:
     if not use_icu:
-        return s.upper()
-    return str(icu.UnicodeString(s).toUpper(loc))
+        return text.upper()
+    # return str(icu.UnicodeString(text).toUpper(loc))
+    return icu.CaseMap.toUpper(loc, text)
 
-def toTitle(s, use_icu=True, loc=icu.Locale.getRoot()):
+def toTitle(text: str, use_icu: bool = True, loc = icu.Locale.getRoot()) -> str:
     if not use_icu:
-        return s.title()
-    return str(icu.UnicodeString(s).toTitle(loc))
+        return text.title()
+    # return str(icu.UnicodeString(text).toTitle(loc))
+    return icu.CaseMap.toTitle(loc, 0, text)
+
+def toSentence(text: str,  use_icu: bool = True, loc = icu.Locale.getRoot()) -> str:
+    if not use_icu:
+        return text.capitalize()
+    return icu.CaseMap.toTitle(loc, 64, text)
+
+capitalise = toSentence
 
 TURKIC = ["tr", "az"]
 
@@ -727,23 +704,23 @@ TURKIC = ["tr", "az"]
 # TODO:
 #   * migrate form engine flag to use_icu flag for consistency
 #
-def toSentence(s, engine="core", lang="und"):
-    # loc = icu.Locale.forLanguageTag(lang)
-    # lang = regex.split('[_\-]', lang.lower())[0]
-    lang = regex.split(r'[_\-]', lang.lower())[0]
-    result = ""
-    if (engine == "core") and (lang in TURKIC):
-        result = buyukharfyap(s[0]) + kucukharfyap(s[1:])
-    elif (engine == "core") and (lang not in TURKIC):
-        result = s.capitalize()
-    elif engine == "icu":
-        if lang not in list(icu.Locale.getAvailableLocales().keys()):
-            lang = "und"
-        loc = icu.Locale.getRoot() if lang == "und" else icu.Locale.forLanguageTag(lang)
-        result = str(icu.UnicodeString(s[0]).toUpper(loc)) + str(icu.UnicodeString(s[1:]).toLower(loc))
-    else:
-        result = s
-    return result
+# def toSentence(s, engine="core", lang="und"):
+#     # loc = icu.Locale.forLanguageTag(lang)
+#     # lang = regex.split('[_\-]', lang.lower())[0]
+#     lang = regex.split(r'[_\-]', lang.lower())[0]
+#     result = ""
+#     if (engine == "core") and (lang in TURKIC):
+#         result = buyukharfyap(s[0]) + kucukharfyap(s[1:])
+#     elif (engine == "core") and (lang not in TURKIC):
+#         result = s.capitalize()
+#     elif engine == "icu":
+#         if lang not in list(icu.Locale.getAvailableLocales().keys()):
+#             lang = "und"
+#         loc = icu.Locale.getRoot() if lang == "und" else icu.Locale.forLanguageTag(lang)
+#         result = str(icu.UnicodeString(s[0]).toUpper(loc)) + str(icu.UnicodeString(s[1:]).toLower(loc))
+#     else:
+#         result = s
+#     return result
 
 # New verion of toSentence
 # def toSentence(s, lang="und", use_icu=False):
@@ -763,15 +740,29 @@ def toSentence(s, engine="core", lang="und"):
 # TODO:
 #   * migrate form engine flag to use_icu flag for consistency
 #
-def foldCase(s, engine="core"):
-    result = ""
-    if engine == "core":
-        result = s.casefold()
-    elif engine == "icu":
-        result = str(icu.UnicodeString(s).foldCase())
-    else:
-        result = s
-    return result
+# def foldCase(s, engine="core"):
+#     result = ""
+#     if engine == "core":
+#         result = s.casefold()
+#     elif engine == "icu":
+#         result = str(icu.UnicodeString(s).foldCase())
+#     else:
+#         result = s
+#     return result
+
+
+####################
+#
+# String prep
+#
+####################
+
+def remove_punctuation(text):
+    result = text.translate(str.maketrans('', '', "".join(list(icu.UnicodeSet(r'[\p{P}]')))))
+    return " ".join(result.strip().split())
+
+def remove_digits(text):
+    return regex.sub(r"\d+([\u0020\u00A0\u202F]\d{3}|[\u066B\u066C,.'-]\d+)*", "", text).strip()
 
 ####################
 #
@@ -826,6 +817,55 @@ def tokenise_bi(text, brkiter):
 
 tokenize_bi = tokenise_bi
 
+# Token generator
+#     To get list of tokens:
+#         iter = icu.BreakIterator.createCharacterInstance(icu.Locale('th_TH'))
+#         [*gen_tokens(z, iter)]
+#     or
+#         list(gen_tokens(z, iter))
+
+def generate_tokens(text: str, brkiter: icu.RuleBasedBreakIterator | None = None) -> Generator[str, None, None]:
+    """Token generator: tokenise a string using specified break iterator
+
+        Token generator
+        To get list of tokens:
+            iter = icu.BreakIterator.createCharacterInstance(icu.Locale('th_TH'))
+            [*gen_tokens(z, iter)]
+        or
+            list(gen_tokens(z, iter))
+
+    Args:
+        text (str): String to be tokenised.
+        brkiter (icu.RuleBasedBreakIterator | None, optional): An ICU4C BreakIterator object. If None, then a word based break iterator for the Root locale will be used.. Defaults to None.
+
+    Returns:
+        str: Textual data to be tokenised.
+
+    Yields:
+        Iterator[str]: A generator for tokens.
+    """
+    if not brkiter:
+        brkiter = icu.BreakIterator.createWordInstance(icu.Locale.getRoot())
+    brkiter.setText(text)
+    i = brkiter.first()
+    for j in brkiter:
+        yield text[i:j]
+        i = j
+
+
+def get_generated_tokens(text:str, bi: icu.BreakIterator | None = None) -> list[str]:
+    """Create a list of tokens from a generator
+
+    Args:
+        text (str): String to be tokenised.
+        bi (icu.BreakIterator | None, optional):  An ICU4C BreakIterator object. If None, then a word based break iterator for the Root locale will be used.. Defaults to None.
+
+    Returns:
+        list[str]: List of tokens based on specified break iterator.
+    """
+    #return [*gen_tokens(text, brkiter=bi)]
+    return list(generate_tokens(text, brkiter=bi))
+
 ####################
 #
 # graphemes():
@@ -853,13 +893,13 @@ gr = graphemes
 #   Class for unicode compliant string operations.
 #
 ####################
-class uString(UserString):
+class ustring(UserString):
     def __init__(self, string):
         self._initial = string
         self._locale = None
         self._nform = None
-        self._unicodestring = icu.UnicodeString(string)
-        self._graphemes = graphemes(string)
+        # self._unicodestring = icu.UnicodeString(string)
+        # self._graphemes = graphemes(string)
         self.debug = False
         super().__init__(string)
 
@@ -906,9 +946,9 @@ class uString(UserString):
     def _set_parameters(self, new_data=None):
         if new_data:
             self.data = new_data
-        self._unicodestring = icu.UnicodeString(self.data)
+        # self._unicodestring = icu.UnicodeString(self.data)
         # self._graphemes = regex.findall(r'\X', self.data)
-        self._graphemes = graphemes(self.data)
+        # self._graphemes = graphemes(self.data)
 
     def available_locales(self):
         return list(icu.Locale.getAvailableLocales().keys())
@@ -921,7 +961,7 @@ class uString(UserString):
         # graphemes_list = gr(self.data)
         results = []
         results_cp = []
-        for grapheme in self._graphemes:
+        for grapheme in graphemes(self.data):
             ci = icu.CanonicalIterator(grapheme)
             equivalents = [char for char in ci if not regex.search(deprecated, char)]
             equivalents_cp = [codepoints(chars, prefix=False) for chars in equivalents]
@@ -935,10 +975,11 @@ class uString(UserString):
     def capitalise(self, locale = "default"):
         loc = self._set_locale(locale)
         data = self.data.split(maxsplit=1)
-        if len(data) == 1:
-            self.data = f"{str(icu.UnicodeString(data[0]).toTitle(loc))}"
-        else:
-            self.data = f"{str(icu.UnicodeString(data[0]).toTitle(loc))} {str(icu.UnicodeString(data[1]).toLower(loc))}"
+        # if len(data) == 1:
+        #     self.data = f"{str(icu.UnicodeString(data[0]).toTitle(loc))}"
+        # else:
+        #     self.data = f"{str(icu.UnicodeString(data[0]).toTitle(loc))} {str(icu.UnicodeString(data[1]).toLower(loc))}"
+        self.data = toSentence(data, use_icu = True, loc = loc)
         self._set_parameters()
         return self
 
@@ -946,8 +987,9 @@ class uString(UserString):
 
     def casefold(self, turkic = False):
         # return str(icu.UnicodeString(self.data).foldCase())
-        option = 1 if turkic else 0
-        self.data = str(icu.UnicodeString(self.data).foldCase(option))
+        # option = 1 if turkic else 0
+        # self.data = str(icu.UnicodeString(self.data).foldCase(option))
+        self.data = toCasefold(self.data, use_icu = True, turkic = turkic)
         self._set_parameters()
         return self
 
@@ -979,6 +1021,12 @@ class uString(UserString):
             return len(regex.findall(pattern, text))
         return text.count(sub, start, end)
 
+    def dominant_direction(self):
+        return dominant_strong_direction(self.data)
+
+    def dominant_script(self, mode="individual"):
+        return dominant_script(self.data, mode=mode)
+
     # encode - from UserString
     # endswith - from UserString
 
@@ -1008,10 +1056,10 @@ class uString(UserString):
         return self.data
 
     def graphemes(self):
-        return self._graphemes
+        return graphemes(self.data)
 
     def grapheme_length(self):
-        return len(self._graphemes)
+        return len(graphemes(self.data))
 
     def halfwidth(self):
         # return icu.Transliterator.createInstance('Fullwidth-Halfwidth').transliterate(self.data)
@@ -1027,7 +1075,7 @@ class uString(UserString):
             status.append(icu.Char.isalnum(char))
         return all(status)
 
-    def isalpha(self):
+    def isalpha_posix(self):
         # Determines whether the specified code point is a letter character.
         # True for general categories "L" (letters).
         # Same as java.lang.Character.isLetter().
@@ -1037,7 +1085,7 @@ class uString(UserString):
             status.append(icu.Char.isalpha(char))
         return all(status)
 
-    def isalphaU(self):
+    def isalpha(self):
         # Check if a code point has the Alphabetic Unicode property.
         # Same as u_hasBinaryProperty(c, UCHAR_ALPHABETIC). This is different from u_isalpha!
         status = []
@@ -1056,7 +1104,7 @@ class uString(UserString):
         data = self.data
         return data.isidentifier()
 
-    def islower(self):
+    def islower_posix(self):
         # Determines whether the specified code point has the general category "Ll" (lowercase letter). 
         # This misses some characters that are also lowercase but have a different general category value. 
         # In order to include those, use UCHAR_LOWERCASE.
@@ -1066,7 +1114,7 @@ class uString(UserString):
             status.append(icu.Char.islower(char))
         return all(status)
 
-    def islowerU(self):
+    def islower(self):
         # Check if a code point has the Lowercase Unicode property. 
         # Same as u_hasBinaryProperty(c, UCHAR_LOWERCASE). This is different from icu.Char.islower! 
         status = []
@@ -1110,7 +1158,7 @@ class uString(UserString):
             words_status.append(True) if word == str(icu.UnicodeString(word).toTitle(loc)) else words_status.append(False)
         return all(words_status)
 
-    def isupper(self):
+    def isupper_posix(self):
         # Determines whether the specified code point has the general category "Lu" (uppercase letter).
         # This misses some characters that are also uppercase but have a different general category value. In order # to include those, use UCHAR_UPPERCASE.
         # This is a C/POSIX migration function.
@@ -1119,7 +1167,7 @@ class uString(UserString):
             status.append(icu.Char.isupper(char))
         return all(status)
 
-    def isupperU(self):
+    def isupper(self):
         # Check if a code point has the Uppercase Unicode property.
         # Same as u_hasBinaryProperty(c, UCHAR_UPPERCASE). This is different from u_isupper!
         status = []
@@ -1163,7 +1211,8 @@ class uString(UserString):
     def lower(self, locale = "default"):
         # return str(icu.UnicodeString(self.data).toLower(icu.Locale(locale))) if locale else str(icu.UnicodeString(self.data).toLower())
         loc = self._set_locale(locale)
-        self.data = str(icu.UnicodeString(self.data).toLower(loc))
+        # self.data = str(icu.UnicodeString(self.data).toLower(loc))
+        self.data = toLower(self.data, True, loc)
         self._set_parameters()
         return self
 
@@ -1204,8 +1253,8 @@ class uString(UserString):
                 self.data = unicodedataplus.normalize("NFC", unicodedataplus.normalize('NFKC', self.data).casefold())
             else:
                 self.data = unicodedataplus.normalize(nform, self.data)
-        self._unicodestring = icu.UnicodeString(self.data)
-        self._graphemes = regex.findall(r'\X',self.data)
+        # self._unicodestring = icu.UnicodeString(self.data)
+        # self._graphemes = regex.findall(r'\X',self.data)
         return self
 
     normalize = normalise
@@ -1306,7 +1355,8 @@ class uString(UserString):
 
     def title(self, locale = "default"):
         loc = self._set_locale(locale)
-        self.data = str(icu.UnicodeString(self.data).toTitle(loc))
+        # self.data = str(icu.UnicodeString(self.data).toTitle(loc))
+        self.data = toTitle(self.data, True, loc)
         self._set_parameters()
         return self
 
@@ -1319,13 +1369,31 @@ class uString(UserString):
             case "character":
                 tokens = [c for c in data]
             case "grapheme":
-                tokens = self._graphemes
+                tokens = graphemes(data)
             case _:
                 tokens = tokenise(data, locale=loc)
         counts = Counter(tokens)
         return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
 
-    def transform(self, id_label, rules = None, reverse = False):
+    def transform(self, id_label: str | None, rules: str | None = None, reverse: bool = False) -> Self:
+        """Use icu.Transliterator to 
+        Example:
+            s = eli.uString('नागार्जुन')
+            (s.data, s.transform('Deva-Latn').data, s.transform('Latin-ASCII').data)
+            # ('नागार्जुन', 'nāgārjuna', 'nagarjuna')
+            # s.data -> 'नागार्जुन'
+            # s.transform('Deva-Latn').data -> 'nāgārjuna'
+            # At this point s.data = 'nāgārjuna', so
+            # s.transform('Latin-ASCII').data -> 'nagarjuna'
+
+        Args:
+            id_label (str | None): ID label for an ICU transliterator. If using custom rules, set to None.
+            rules (str | None, optional): Custom transliteration rules for icu.Transliterator. Defaults to None.
+            reverse (bool, optional): Set to True if the reverse transformation is required. Defaults to False.
+
+        Returns:
+            Self: The data stored in the uString object is updated to the transformed string. And Self returned for further methods.
+        """
         direction = icu.UTransDirection.REVERSE if reverse else icu.UTransDirection.FORWARD
         if id_label is None and rules is None:
             return self
@@ -1339,7 +1407,9 @@ class uString(UserString):
     # translate - from UserString
 
     def unicodestring(self):
-        return self._unicodestring
+        return icu.UnicodeString(self.data)
+
+    UnicodeString = unicodestring
 
     def upper(self, locale: str = "default") -> Self:
         """Return a copy of the string with all the cased characters converted to uppercase.
@@ -1351,19 +1421,18 @@ class uString(UserString):
             Self: Updated uString object, with data uppercased.
         """
         loc = self._set_locale(locale)
-        self.data = str(icu.UnicodeString(self.data).toUpper(loc))
+        # self.data = str(icu.UnicodeString(self.data).toUpper(loc))
+        self.data = toUpper(self.data, True, loc)
         self._set_parameters()
         return self
 
     # zfill - from UserString
 
 # TODO: uString
-#    * dominant script  (script code, script name)
-#    * dominant direction
+#    * first_strong
 #    * is_bidi
 #  , * script (script code, script name)
 #    * script extension  (script code, script name)
-#    * first_strong
 #    * isnumeric
 #    * isdecimal
 #    * isbase  -> uString.isbase
@@ -1378,3 +1447,8 @@ class uString(UserString):
 # 'capitalize', 'center', 'count', 'encode', 'endswith', 'expandtabs', 'find', 'format', 'format_map', 'index', 'isdecimal', 'isdigit', 'isnumeric', 'istitle', 'isupper', 'join', 'ljust', 'maketrans', 'partition', 'removeprefix', 'removesuffix', 'rfind', 'rindex', 'rjust', 'rpartition', 'rsplit',  'splitlines', 'startswith', 'swapcase', 'translate', 'zfill'
 
 # icu.UnicodeString - trim, toTitle, startswith/startsWith, reverse, length, endswith/endsWith, compareBetween, compare, caseCompareBetween, caseCompare
+
+
+
+
+

@@ -8,6 +8,18 @@
 """
 
 import regex
+import arabic_reshaper
+from bidi.algorithm import get_display
+from pyfribidi import log2vis, RTL
+import regex
+from collections import Counter
+import unicodedataplus
+
+####################
+#
+# Detect if string contains RTL CHARACTERS
+#
+####################
 
 def is_bidi(text):
     """Indicates if string requires bidirectional support.
@@ -22,6 +34,12 @@ def is_bidi(text):
     return bool(regex.search(bidi_reg, text))
 
 isbidi = is_bidi
+
+####################
+#
+# Create an explicit embedding level
+#
+####################
 
 def bidi_envelope(text, dir = "auto", mode = "isolate"):
     """Wrap string in bidirectional formatting characters.
@@ -61,6 +79,12 @@ def bidi_envelope(text, dir = "auto", mode = "isolate"):
 
 envelope = bidi_envelope
 
+####################
+#
+# Strip directional formatting control characters
+#
+####################
+
 def strip_bidi(text):
     """Strip bidi formatting characters.
 
@@ -73,3 +97,110 @@ def strip_bidi(text):
         str: _description_
     """
     return regex.sub('[\u202a-\u202e\u2066-\u2069]', '', text)
+
+####################
+#
+# Render RTL in an environment that doesn't support UBA
+#
+####################
+
+def rtl_hack(text: str, arabic: bool = True, fribidi: bool = True) -> str:
+    """Visually reorders Arabic or Hebrew script Unicode text
+
+    Visually reorders Arabic or Hebrew script Unicode text. For Arabic script text,
+    individual Unicode characters are substituting each character for its equivalent
+    presentation form. The modules are used to overcome lack of bidirectional algorithm
+    and complex font rendering in some modules and terminals.
+
+    It is better to solutions that utilise proper bidirectional algorithm and font
+    rendering implementations. For matplotlib use the mplcairo backend instead. For
+    annotating images use Pillow. Both make use of libraqm.
+
+    arabic_reshaper module converts Arabic characters to Arabic Presentation Forms:
+        pip install arabic-reshaper
+
+    bidi.algorithm module converts a logically ordered string to visually ordered
+    equivalent.
+        pip install python-bidi
+
+    Args:
+        text (str): _description_
+
+    Returns:
+        str: _description_
+    """
+    if fribidi:
+        return log2vis(text, RTL)
+    return get_display(arabic_reshaper.reshape(text)) if arabic == True else get_display(text)
+
+####################
+#
+# Clean presentation forms
+#
+#    For Latin and Armenian scripts, use either folding=True or folding=False (default), 
+#    while for Arabic and Hebrew scripts, use folding=False.
+#
+####################
+
+def has_presentation_forms(text):
+    pattern = r'([\p{InAlphabetic_Presentation_Forms}\p{InArabic_Presentation_Forms-A}\p{InArabic_Presentation_Forms-B}]+)'
+    return bool(regex.findall(pattern, text))
+
+def clean_presentation_forms(text, folding=False):
+    def clean_pf(match, folding):
+        return  match.group(1).casefold() if folding else unicodedataplus.normalize("NFKC", match.group(1))
+    pattern = r'([\p{InAlphabetic_Presentation_Forms}\p{InArabic_Presentation_Forms-A}\p{InArabic_Presentation_Forms-B}]+)'
+    return regex.sub(pattern, lambda match, folding=folding: clean_pf(match, folding), text)
+
+def scan_bidi(text):
+    """Analyse string for bidi support.
+
+    The script returns a tuple indicating if sting contains bidirectional text and if it uses bidirectional formatting characters. Returns a tuple of:
+      * bidi_status - indicates if RTL characters in string,
+      * isolates - indicates if bidi isolation formatting characters are in string,
+      * embeddings - indicates if bidi embedding formatting characters are in string,
+      * marks - indicates if bidi marks are in the string,
+      * overrides - indicates if bidi embedding formatting characters are in string,
+      * formatting_characters - a set of bidirectional formatting characters in string.
+      * presentation_forms - indicates if presentation forms are in the string.
+
+    Args:
+        text (str): Text to analyse
+
+    Returns:
+        Tuple[bool, bool, bool, bool, bool, Set[Optional[str]], bool]: Summary of bidi support analysis
+    """
+    bidi_status = is_bidi(text)
+    isolates = bool(regex.search(r'[\u2066\u2067\u2068]', text)) and bool(regex.search(r'\u2069', text))
+    embeddings = bool(regex.search(r'[\u202A\u202B]', text)) and bool(regex.search(r'\u202C', text))
+    marks = bool(regex.search(r'[\u200E\u200F]', text))
+    overrides = bool(regex.search(r'[\u202D\u202E]', text)) and bool(regex.search(r'\u202C', text))
+    formating_characters = set(regex.findall(r'[\u200e\u200f\u202a-\u202e\u2066-\u2069]', text))
+    formating_characters = {f"U+{ord(c):04X} ({unicodedataplus.name(c,'-')})" for c in formating_characters if formating_characters is not None}
+    presentation_forms = has_presentation_forms(text)
+    return (bidi_status, isolates, embeddings, marks, overrides, formating_characters, presentation_forms)
+
+scan = scan_bidi
+
+####################
+#
+# Strong directionality
+#
+#    Detect directionality based on either first string character or dominant directionality in string.
+#
+####################
+
+def first_strong(s):
+    properties = ['ltr' if v == "L" else 'rtl' if v in ["AL", "R"] else "-" for v in [unicodedataplus.bidirectional(c) for c in list(s)]]
+    for value in properties:
+        if value == "ltr":
+            return "ltr"
+        elif value == "rtl":
+            return "rtl"
+    return None
+
+def dominant_strong_direction(s):
+    count = Counter([unicodedataplus.bidirectional(c) for c in list(s)])
+    rtl_count = count['R'] + count['AL'] + count['RLE'] + count["RLI"]
+    ltr_count = count['L'] + count['LRE'] + count["LRI"] 
+    return "rtl" if rtl_count > ltr_count else "ltr"

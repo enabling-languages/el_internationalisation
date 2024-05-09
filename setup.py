@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='el_internationalisation',
-    version='0.6.4',
+    version='0.6.5',
     description='Helper functions to improve Python internationalisation',
     url='https://github.com/enabling-languages/el_internationalisation',
     author='Andrew Cunningham',
@@ -10,19 +10,21 @@ setup(
     license='MIT',
     packages=['el_internationalisation'],
     install_requires=[
+        'arabic_reshaper',
         'lxml',
         'prettytable',
+        'pyfribidi',
         'pyicu',
+        'python-bidi',
         'regex',
-        'unicodedataplus'
+        'unicodedataplus',
+        'wcwidth'
     ],
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',

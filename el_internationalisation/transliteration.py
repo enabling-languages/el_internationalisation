@@ -238,3 +238,25 @@ def translit_dict(source, lang, dir = "forward", nf = DEFAULT_NF):
 # 1. Use prep_string() or similar normalisation before transofrmations
 # 2. 
 #
+
+###############################################
+#
+# EL Translit functions
+#
+###############################################
+
+def to_ascii(text: str, latin_only: bool = True) -> str:
+    """Convert text to Basic Latin characters only (i.e. equivalent to ASCII)
+
+    Args:
+        text (str): String to transform.
+        latin_only (bool, optional): If True, only Latin text is converted to Basic Latin (ASCII) equivalents, else other scripts are transliterated to Latin, then converted to Basic Latin (ASCII). Defaults to True.
+
+    Returns:
+        str: Transformed string.
+    """
+    if latin_only:
+        transliterator = icu.Transliterator.createInstance('Latin-ASCII')
+    else:
+        transliterator = icu.Transliterator.createInstance('Any-Latin; Latin-ASCII')
+    return transliterator.transliterate(text)
