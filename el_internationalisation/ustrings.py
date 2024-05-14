@@ -7,20 +7,26 @@
 ##########################################################
 
 from collections import Counter, UserString
+from collections.abc import Sequence
 import icu
 import prettytable
 import regex
 import unicodedataplus
 from .bidi import bidi_envelope, is_bidi, first_strong, dominant_strong_direction
-from typing import Self, Generator
+from typing import Self, Generator, TypeAlias
 from functools import partial
 from wcwidth import wcswidth
+
+Char: TypeAlias = tuple[str, str, str]
+# type Char = tuple[str, str, str]
+CharData: TypeAlias = list[Char]
+# type CharData = list[Char]
 
 # TODO:
 #   * add type hinting
 #   * add DocStrings
 
-VERSION = "0.6.5"
+VERSION = "0.6.6"
 UD_VERSION = unicodedataplus.unidata_version
 ICU_VERSION = icu.ICU_VERSION
 PYICU_VERSION = icu.VERSION
@@ -85,7 +91,7 @@ def add_dotted_circle(text):
 #    eli.cp("𞤀𞤣𞤤𞤢𞤥 𞤆𞤵𞤤𞤢𞤪", extended=True)
 #    eli.cp("𞤀𞤣𞤤𞤢𞤥 𞤆𞤵𞤤𞤢𞤪", prefix=True, extended=True)
 
-def codepoints(text, prefix = False, extended = False):
+def codepoints(text: str, prefix: bool = False, extended: bool = False) -> str | Sequence[CharData]:
     """Identifies codepoints in a string.
 
     Args:
@@ -94,14 +100,13 @@ def codepoints(text, prefix = False, extended = False):
         extended (bool, optional): flag indicating if character is displayed after codepoint. Defaults to False.
 
     Returns:
-        str: string of Unicode codepoints in analysed string.
+        str | Sequence[CharData]: string of Unicode codepoints in analysed string, or if extended a list of tuples containing teh character, codepoint, and character name
     """
     if extended:
-        return ' '.join(f"U+{ord(c):04X} ({c})" for c in text) if prefix else ' '.join(f"{ord(c):04X} ({c})" for c in text)
+        return [(c, f"U+{ord(c):04X}", unicodedataplus.name(c)) for c in text] if prefix else [(c, f"{ord(c):04X}", unicodedataplus.name(c)) for c in text]
     else:
         # return ' '.join('U+{:04X}'.format(ord(c)) for c in text) if prefix else ' '.join('{:04X}'.format(ord(c)) for c in text)
         return ' '.join(f"U+{ord(c):04X}" for c in text) if prefix else ' '.join(f"{ord(c):04X}" for c in text)
-
 cp = codepoints
 
 def codepointsToChar(codepoints):
@@ -178,7 +183,7 @@ def unicode_data(text, ce=False):
 udata = unicode_data
 
 def codepoint_names(text):
-    return [f"U+{ord(c):04X} ({unicodedataplus.name(c,'-')})" for c in text]
+    return [(f"U+{ord(c):04X}", unicodedataplus.name(c,'-')) for c in text]
 
 cpnames = codepoint_names
 
@@ -363,7 +368,7 @@ class ngraphs:
 #    'core' uses the Python3 definition.
 #
 ####################
-def isalpha(text, mode=None):
+def isalpha(text, mode="unicode"):
     if (not mode) or (mode.lower() == "el"):
         if len(text) == 1:
             result = bool(regex.match(r'[\p{Alphabetic}\p{Mn}\p{Mc}\u00B7]', text))
@@ -592,7 +597,7 @@ def normalise(nf, text, use_icu=False):
 # Simple matching
 #   NFD(X) = NFD(Y)
 def simple_match(x, y, use_icu=False):
-    return toNFD(x, use_icu=use_icu) == toNFD(y, use_icu=use_icu)
+    return x == y
 
 # Cased matching
 #   toLower(NFD(X)) = toLower(NFD(Y))
@@ -909,7 +914,10 @@ class ustring(UserString):
     def __repr__(self):
         # return f'uString({self.data}, {self._initial}, {self._nform})'
         class_name = type(self).__name__
-        return f"{class_name}(nform={self._nform})"
+        limit = 100
+        truncated: str = f'{"".join(graphemes(self.data)[0:round(2*limit/3)])}…' if len(self.data) > limit else self.data
+        transformed: bool = True if self.data == self._initial else False
+        return f"{class_name}(nform={self._nform}, locale={self._locale}, transformed={transformed}, string={truncated})"
 
     def _isbicameral(self):
         # Garay (Gara) to be added in Unicode v16
@@ -974,12 +982,12 @@ class ustring(UserString):
 
     def capitalise(self, locale = "default"):
         loc = self._set_locale(locale)
-        data = self.data.split(maxsplit=1)
+        # data = self.data.split(maxsplit=1)
         # if len(data) == 1:
         #     self.data = f"{str(icu.UnicodeString(data[0]).toTitle(loc))}"
         # else:
         #     self.data = f"{str(icu.UnicodeString(data[0]).toTitle(loc))} {str(icu.UnicodeString(data[1]).toLower(loc))}"
-        self.data = toSentence(data, use_icu = True, loc = loc)
+        self.data = toSentence(self.data, use_icu = True, loc = loc)
         self._set_parameters()
         return self
 
@@ -1005,13 +1013,15 @@ class ustring(UserString):
     def center(self, width: int, fillchar:str = " ") -> str:
         data = self.data
         return data.center(self._adjusted_width(width, data), fillchar)
+
     centre = center
 
     def codepoints(self, prefix = False, extended = False):
-        if extended:
-            return ' '.join(f"U+{ord(c):04X} ({c})" for c in self.data) if prefix else ' '.join(f"{ord(c):04X} ({c})" for c in self.data)
-        else:
-            return ' '.join(f"U+{ord(c):04X}" for c in self.data) if prefix else ' '.join(f"{ord(c):04X}" for c in self.data)
+        # if extended:
+        #     return ' '.join(f"U+{ord(c):04X} ({c})" for c in self.data) if prefix else ' '.join(f"{ord(c):04X} ({c})" for c in self.data)
+        # else:
+        #     return ' '.join(f"U+{ord(c):04X}" for c in self.data) if prefix else ' '.join(f"{ord(c):04X}" for c in self.data)
+        return codepoints(self.data, prefix = prefix, extended = extended)
 
     def count(self, sub, start=None, end=None, use_regex=False, overlapping=False):
         text = self.data
@@ -1097,8 +1107,46 @@ class ustring(UserString):
         data = self.data
         return data.isascii()
 
+    def isbase(self):
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isbase(char))
+        return all(status)
+
+    def isbidi(self):
+        return is_bidi(self.data)
+
+    def isblank(self):
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isblank(char))
+        return all(status)
+
+    def iscntrl(self):
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.iscntrl(char))
+        return all(status)
+
     # isdecimal - from UserString
-    # isdigit - from UserString
+
+    def isdefined(self):
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isdefined(char))
+        return all(status)
+
+    def isdigit(self):
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isdigit(char))
+        return all(status)
+
+    def isgraph(self):
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isgraph(char))
+        return all(status)
 
     def isidentifier(self):
         data = self.data
@@ -1139,7 +1187,16 @@ class ustring(UserString):
             status.append(icu.Char.isprint(char))
         return all(status)
 
-    def isspace(self):
+    def ispunct(self):
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.ispunct(char))
+        return all(status)
+
+    def isscript(self , script:str , common:bool=False) -> bool:
+        return isScript(self.text, script=script, common=common)
+
+    def isspace_posix(self):
         # Determines if the specified character is a space character or not. 
         # Note: There are several ICU whitespace functions;
         # This is a C/POSIX migration function.
@@ -1147,6 +1204,8 @@ class ustring(UserString):
         for char in [char for char in self.data]:
             status.append(icu.Char.isspace(char))
         return all(status)
+
+    isspace = isspace_posix
 
     def istitle(self, locale = "default"):
         loc = self._set_locale(locale)
@@ -1200,6 +1259,12 @@ class ustring(UserString):
         status = []
         for char in [char for char in self.data]:
             status.append(icu.Char.isUWhiteSpace(char))
+        return all(status)
+
+    def isxdigit(self):
+        status = []
+        for char in [char for char in self.data]:
+            status.append(icu.Char.isxdigit(char))
         return all(status)
 
     # join - from UserString
@@ -1406,6 +1471,11 @@ class ustring(UserString):
 
     # translate - from UserString
 
+    def truncate(self, limit: int = 100, mode: str = "character") -> str:
+        if mode == "grapheme":
+            return f'{"".join(graphemes(self.data)[0: limit])}…' if len(self.data) > limit else "".join(graphemes(self.data))
+        return f'{self.data[0:limit]}…' if len(self.data) > limit else self.data
+
     def unicodestring(self):
         return icu.UnicodeString(self.data)
 
@@ -1428,21 +1498,9 @@ class ustring(UserString):
 
     # zfill - from UserString
 
-# TODO: uString
-#    * first_strong
-#    * is_bidi
-#  , * script (script code, script name)
-#    * script extension  (script code, script name)
-#    * isnumeric
-#    * isdecimal
-#    * isbase  -> uString.isbase
-#    * isblank  -> uString.isblank
-#    * iscntrl  -> uString.iscntrl
-#    * isdefined  -> uString.isdefined
-#    * isdigit  -> uString.isdigit
-#    * isgraph  -> uString.isgraph
-#    * ispunct  -> uString.ispunct
-#    * istitle  -> uString.istitle
+
+
+
 
 # 'capitalize', 'center', 'count', 'encode', 'endswith', 'expandtabs', 'find', 'format', 'format_map', 'index', 'isdecimal', 'isdigit', 'isnumeric', 'istitle', 'isupper', 'join', 'ljust', 'maketrans', 'partition', 'removeprefix', 'removesuffix', 'rfind', 'rindex', 'rjust', 'rpartition', 'rsplit',  'splitlines', 'startswith', 'swapcase', 'translate', 'zfill'
 

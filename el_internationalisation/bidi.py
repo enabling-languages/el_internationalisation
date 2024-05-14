@@ -22,7 +22,9 @@ import unicodedataplus
 ####################
 
 def is_bidi(text):
-    """Indicates if string requires bidirectional support.
+    """Indicates if string requires bidirectional support for RTL characters.
+
+    Tests for characters bith bidirectional category indicating RTL text, or for directional formating control characters.
 
     Args:
         text (str): string to analyse
