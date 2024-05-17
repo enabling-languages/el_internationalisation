@@ -26,7 +26,7 @@ CharData: TypeAlias = list[Char]
 #   * add type hinting
 #   * add DocStrings
 
-VERSION = "0.6.6"
+VERSION = "0.7.0"
 UD_VERSION = unicodedataplus.unidata_version
 ICU_VERSION = icu.ICU_VERSION
 PYICU_VERSION = icu.VERSION
@@ -894,11 +894,11 @@ gr = graphemes
 
 ####################
 #
-# ustring:
+# ustr (ustring):
 #   Class for unicode compliant string operations.
 #
 ####################
-class ustring(UserString):
+class ustr(UserString):
     def __init__(self, string):
         self._initial = string
         self._locale = None
@@ -916,7 +916,7 @@ class ustring(UserString):
         class_name = type(self).__name__
         limit = 100
         truncated: str = f'{"".join(graphemes(self.data)[0:round(2*limit/3)])}…' if len(self.data) > limit else self.data
-        transformed: bool = True if self.data == self._initial else False
+        transformed: bool = True if self.data != self._initial else False
         return f"{class_name}(nform={self._nform}, locale={self._locale}, transformed={transformed}, string={truncated})"
 
     def _isbicameral(self):
@@ -939,8 +939,13 @@ class ustring(UserString):
             status.append(icu.Char.hasBinaryProperty(char, property))
         return all(status)
 
-    def _set_locale(self, locale = "default"):
-        self._locale = locale
+    def _set_locale(self, locale = None):
+        if locale:
+            self._locale = locale
+        elif self._locale:
+            locale = self._locale
+        else:
+            self._locale = locale = "default"
         match locale:
             case "root":
                 return icu.Locale.getRoot()
@@ -957,6 +962,14 @@ class ustring(UserString):
         # self._unicodestring = icu.UnicodeString(self.data)
         # self._graphemes = regex.findall(r'\X', self.data)
         # self._graphemes = graphemes(self.data)
+
+    def _version(self):
+        """Package version and unicode versions used.
+
+        Returns:
+            tuple: Tuple contianing (VERSION, PYICU_VERSION, ICU_VERSION, ICU_UNICODE_VERSION, UD_VERSION)
+        """
+        return (VERSION, PYICU_VERSION, ICU_VERSION, ICU_UNICODE_VERSION, UD_VERSION)
 
     def available_locales(self):
         return list(icu.Locale.getAvailableLocales().keys())
@@ -1299,8 +1312,13 @@ class ustring(UserString):
 
     # maketrans - from UserString
 
-    def normalise(self, nform="NFD", use_icu=True):
-        self._nform = nform.upper()
+    def normalise(self, nform=None, use_icu=True):
+        if nform:
+            self._nform = nform.upper()
+        elif self._nform:
+            nform = self._nform
+        else:
+            self._nform = nform = "NFD"
         if use_icu:
             match nform:
                 case 'NFC':
@@ -1499,14 +1517,56 @@ class ustring(UserString):
     # zfill - from UserString
 
 
+#
+# Currently unmodified functions from UserString:
+# 
+# zfill
+# translate 
+# swapcase
+# startswith
+# splitlines
+# rpartition
+# rindex
+# rfind
+# removesuffix
+# removeprefix
+# partition
+# maketrans
+# join
+# isnumeric
+# isdecimal
+# index 
+# format_map 
+# format 
+# find 
+# expantabs 
+# endswith 
+# encode 
 
+
+# TODO:
+#  * replace
+#  * isnumeric
+#  * isdecimal
+#  * swapcase
+
+# Investigate if changes required:
+#  * endswidth
+#  * startswith
+#  * removesuffix
+#  * removeprefix
 
 
 # 'capitalize', 'center', 'count', 'encode', 'endswith', 'expandtabs', 'find', 'format', 'format_map', 'index', 'isdecimal', 'isdigit', 'isnumeric', 'istitle', 'isupper', 'join', 'ljust', 'maketrans', 'partition', 'removeprefix', 'removesuffix', 'rfind', 'rindex', 'rjust', 'rpartition', 'rsplit',  'splitlines', 'startswith', 'swapcase', 'translate', 'zfill'
 
-# icu.UnicodeString - trim, toTitle, startswith/startsWith, reverse, length, endswith/endsWith, compareBetween, compare, caseCompareBetween, caseCompare
-
-
-
-
-
+# posibilities from icu.UnicodeString - 
+# * trim, 
+# * toTitle, 
+# * startswith/startsWith, 
+# * # * reverse, 
+# * length, 
+# * endswith/endsWith, 
+# * compareBetween, 
+# * compare, 
+# * caseCompareBetween, 
+# * caseCompare

@@ -7,7 +7,7 @@ def analyse_char(char: str, target: str = 'utf-8'):
     if len(char) > 1:
         print("anyalyse_char() only takes a single character as a string argument.")
         return None
-    print(f'\n{char} – {cp(char, prefix=True)} – {unicodedataplus.name(char) if len(char) == 1 else ''}\n')
+    print(f'\n{char} – {cp(char, prefix=True)} – {unicodedataplus.name(char) if len(char) == 1 else ""}\n')
     table = []
     encodings = [
         'utf-8', 'utf-16-be', 'utf-16-le',
