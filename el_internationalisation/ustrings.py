@@ -9,7 +9,7 @@
 from collections import Counter, UserString
 from collections.abc import Sequence
 import icu
-import prettytable
+# import prettytable
 import regex
 import unicodedataplus
 from .bidi import bidi_envelope, is_bidi, first_strong, dominant_strong_direction
@@ -26,7 +26,7 @@ CharData: TypeAlias = list[Char]
 #   * add type hinting
 #   * add DocStrings
 
-VERSION = "0.7.0"
+VERSION = "0.7.2"
 UD_VERSION = unicodedataplus.unidata_version
 ICU_VERSION = icu.ICU_VERSION
 PYICU_VERSION = icu.VERSION
@@ -153,34 +153,34 @@ def canonical_equivalents(ci, ustring = None):
         ci.setSource(ustring)
     return [' '.join(f"U+{ord(c):04X}" for c in char) for char in ci]
 
-def unicode_data(text, ce=False):
-    """Display Unicode data for each character in string.
-
-    Perform a character tokenisation on a string, and generate a table containing
-    data on some Unicode character properties, including character codepoint and name,
-    script character belongs to,
-
-    Args:
-        text (str): string to analyse.
-    """
-    print(f"String: {text}")
-    t = prettytable.PrettyTable(["char", "cp", "name", "script", "block", "cat", "bidi", "cc"])
-    for c in list(text):
-        if unicodedataplus.name(c,'-')!='-':
-            cr = bidi_envelope(c, dir="auto", mode="isolate") if is_bidi(c) else c
-            t.add_row([cr, "%04X"%(ord(c)),
-                unicodedataplus.name(c,'-'),
-                unicodedataplus.script(c),
-                unicodedataplus.block(c),
-                unicodedataplus.category(c),
-                unicodedataplus.bidirectional(c),
-                unicodedataplus.combining(c)])
-    print(t)
-    if ce:
-        print(canonical_equivalents_str(text))
-    return None
-
-udata = unicode_data
+# def unicode_data(text, ce=False):
+#     """Display Unicode data for each character in string.
+# 
+#     Perform a character tokenisation on a string, and generate a table containing
+#     data on some Unicode character properties, including character codepoint and name,
+#     script character belongs to,
+# 
+#     Args:
+#         text (str): string to analyse.
+#     """
+#     print(f"String: {text}")
+#     t = prettytable.PrettyTable(["char", "cp", "name", "script", "block", "cat", "bidi", "cc"])
+#     for c in list(text):
+#         if unicodedataplus.name(c,'-')!='-':
+#             cr = bidi_envelope(c, dir="auto", mode="isolate") if is_bidi(c) else c
+#             t.add_row([cr, "%04X"%(ord(c)),
+#                 unicodedataplus.name(c,'-'),
+#                 unicodedataplus.script(c),
+#                 unicodedataplus.block(c),
+#                 unicodedataplus.category(c),
+#                 unicodedataplus.bidirectional(c),
+#                 unicodedataplus.combining(c)])
+#     print(t)
+#     if ce:
+#         print(canonical_equivalents_str(text))
+#     return None
+# 
+# udata = unicode_data
 
 def codepoint_names(text):
     return [(f"U+{ord(c):04X}", unicodedataplus.name(c,'-')) for c in text]
@@ -928,7 +928,7 @@ class ustr(UserString):
             scripts_in_text.add(unicodedataplus.script(char))
         return True if bicameral_scripts & scripts_in_text else False
 
-    def _adjusted_width(self, n:int, text:str)->int:
+    def _adjusted_width(self, n:int)->int:
         data = self.data
         adjustment: int = len(data) - wcswidth(data)
         return n + adjustment
@@ -1457,6 +1457,22 @@ class ustr(UserString):
                 tokens = tokenise(data, locale=loc)
         counts = Counter(tokens)
         return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    
+    def tokenise(self, mode="word", locale="default", pattern=None):
+        # Frequencies of character, grapheme, or word tokens in uString object
+        loc = self._set_locale(locale)
+        tokens = []
+        data = self.data
+        match mode:
+            case "character":
+                tokens = [c for c in data]
+            case "grapheme":
+                tokens = graphemes(data)
+            case "regex":
+                tokens = regex.findall(pattern, data)
+            case _:
+                tokens = tokenise(data, locale=loc)
+        return tokens
 
     def transform(self, id_label: str | None, rules: str | None = None, reverse: bool = False) -> Self:
         """Use icu.Transliterator to 

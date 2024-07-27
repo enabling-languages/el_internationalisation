@@ -4,7 +4,7 @@ el_internationalisation
 Helper functions to improve Python internationalization.
 """
 
-__version__ = "0.7.0"
+__version__ = "0.7.2"
 __author__ = 'Andrew Cunningham'
 __credits__ = 'Enabling Languages'
 
@@ -17,6 +17,7 @@ from .utilities import *
 from .bibliographic import *
 from .analyse_char import *
 from .bidi_isolation import *
+from .ucd import *
 
 del(digits)
 del(ustrings)
@@ -25,3 +26,6 @@ del(transliteration_data)
 del(transliteration)
 del(utilities)
 del(bibliographic)
+del(analyse_char)
+del(bidi_isolation)
+del(ucd)
