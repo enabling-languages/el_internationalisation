@@ -1,7 +1,9 @@
 import icu
 from functools import partialmethod
 import html
-import prettytable
+from rich.console import Console
+from rich.table import Table, box
+# from hexdump import hexdump
 
 #
 # Refer to
@@ -50,7 +52,7 @@ def get_property(char: str, property: int, short_name: bool = False) -> str | bo
     value = icu.Char.getIntPropertyValue(char, property)
     return icu.Char.getPropertyValueName(property, value, name_choice)
 
-class UCD():
+class ucd():
     def __init__(self, char):
         self._char = char
         self._name = icu.Char.charName(self._char)
@@ -440,10 +442,9 @@ class UCD():
     xid_continue = partialmethod(_get_property, property = icu.UProperty.XID_CONTINUE, short_name = False)
     xid_start = partialmethod(_get_property, property = icu.UProperty.XID_START, short_name = False)
 
-
-class UCD_str():
+class ucd_str():
     def __init__(self, chars):
-        self._chars = [UCD(char) for char in chars]
+        self._chars = [ucd(char) for char in chars]
         self.data = [c.data for c in self._chars]
 
     def __str__(self):
@@ -480,19 +481,41 @@ def unicode_data(text):
     Args:
         text (str): string to analyse.
     """
-    print(f"String: {text}")
-    data = UCD_str(text).data
-    t = prettytable.PrettyTable(["char", "cp", "name", "script", "block", "cat", "bidi", "cc"])
+    data = ucd_str(text).data
+    console = Console()
+    table = Table(
+        show_header=True,
+        header_style="light_slate_blue",
+        title="Character properties",
+        box=box.SQUARE, 
+        caption=f"String: {text}")
+    table.add_column("char")
+    table.add_column("cp")
+    table.add_column("name")
+    table.add_column("script")
+    table.add_column("block")
+    table.add_column("cat")
+    table.add_column("bidi")
+    table.add_column("cc")
     for datum in data:
-        t.add_row([datum[0],
+        table.add_row(
+            datum[0],
             datum[1],
             datum[2],
             datum[3],
             datum[4],
             datum[5],
             datum[6],
-            datum[7]])
-    print(t)
+            str(datum[7]))
+    # console.print(f"String: {text}")
+    console.print(table)
     return None
 
 udata = unicode_data
+
+
+# def analyse_bytes(data, encoding = 'utf-8'):
+#     if isinstance(data, str):
+#         data = data.encode(encoding)
+#     hexdump(data)
+

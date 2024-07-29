@@ -26,7 +26,7 @@ CharData: TypeAlias = list[Char]
 #   * add type hinting
 #   * add DocStrings
 
-VERSION = "0.7.2"
+VERSION = "0.7.3"
 UD_VERSION = unicodedataplus.unidata_version
 ICU_VERSION = icu.ICU_VERSION
 PYICU_VERSION = icu.VERSION

@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='el_internationalisation',
-    version='0.7.2',
+    version='0.7.3',
     description='Helper functions to improve Python internationalisation',
     url='https://github.com/enabling-languages/el_internationalisation',
     author='Andrew Cunningham',
@@ -11,12 +11,13 @@ setup(
     packages=['el_internationalisation'],
     install_requires=[
         'arabic_reshaper',
+        'hexdump',
         'lxml',
-        'prettytable',
         'pyfribidi',
         'pyicu',
         'python-bidi',
         'regex',
+        'rich',
         'unicodedataplus',
         'wcwidth'
     ],
