@@ -3,7 +3,7 @@ from functools import partialmethod
 import html
 from rich.console import Console
 from rich.table import Table, box
-# from hexdump import hexdump
+from hexdump import hexdump
 
 #
 # Refer to

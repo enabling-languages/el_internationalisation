@@ -16,6 +16,7 @@ from .bidi import bidi_envelope, is_bidi, first_strong, dominant_strong_directio
 from typing import Self, Generator, TypeAlias
 from functools import partial
 from wcwidth import wcswidth
+from .data import udata
 
 Char: TypeAlias = tuple[str, str, str]
 # type Char = tuple[str, str, str]
@@ -1510,6 +1511,9 @@ class ustr(UserString):
             return f'{"".join(graphemes(self.data)[0: limit])}…' if len(self.data) > limit else "".join(graphemes(self.data))
         return f'{self.data[0:limit]}…' if len(self.data) > limit else self.data
 
+    def udata(self):
+        udata(self.data)
+
     def unicodestring(self):
         return icu.UnicodeString(self.data)
 
@@ -1531,7 +1535,6 @@ class ustr(UserString):
         return self
 
     # zfill - from UserString
-
 
 #
 # Currently unmodified functions from UserString:

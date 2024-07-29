@@ -15,9 +15,8 @@ from .transliteration_data import *
 from .transliteration import *
 from .utilities import *
 from .bibliographic import *
-from .analyse_char import *
 from .bidi_isolation import *
-from .ucd import *
+from .data import *
 
 del(digits)
 del(ustrings)
@@ -26,6 +25,5 @@ del(transliteration_data)
 del(transliteration)
 del(utilities)
 del(bibliographic)
-del(analyse_char)
 del(bidi_isolation)
-del(ucd)
+del(data)
