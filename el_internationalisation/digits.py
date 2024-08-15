@@ -7,7 +7,8 @@
 #
 ####################
 
-import unicodedataplus, regex, locale, icu
+import unicodedataplus as _unicodedataplus, regex as _regex
+import locale as _locale, icu as _icu
 
 # TODO:
 #   * add type hinting
@@ -27,21 +28,21 @@ def convert_digits(text, sep = (",", "."), use_icu=False):
     Returns:
         Union[int, float, None]: integer or float equivalent of the string representation of th input number
     """
-    nd = regex.compile(r'^-?\p{Nd}[,.\u066B\u066C\u0020\u2009\u202F\p{Nd}]*$')
+    nd = _regex.compile(r'^-?\p{Nd}[,.\u066B\u066C\u0020\u2009\u202F\p{Nd}]*$')
     tsep, dsep = sep
     if nd.match(text):
         text = text.replace(tsep, "")
         if use_icu:
-            text = ''.join([str(icu.Char().digit(c)) if c.isdigit() else c  for c in text])
+            text = ''.join([str(_icu.Char().digit(c)) if c.isdigit() else c  for c in text])
         else:
-            text = ''.join([str(unicodedataplus.decimal(c, c)) for c in text])
+            text = ''.join([str(_unicodedataplus.decimal(c, c)) for c in text])
         if dsep in text:
             return float(text.replace(dsep, ".")) if dsep != "." else float(text)
         return int(text)
     return None
 
 def is_number(v, sep = (",", ".")):
-    nd = regex.compile(r'^-?\p{Nd}[,.\u066B\u066C\u0020\u2009\u202F\p{Nd}]+$')
+    nd = _regex.compile(r'^-?\p{Nd}[,.\u066B\u066C\u0020\u2009\u202F\p{Nd}]+$')
     v = "".join(v.split())
     if isinstance(v, int) or isinstance(v, float):
         return isinstance(v, (int, str)), type(v), v
@@ -61,14 +62,14 @@ def is_number(v, sep = (",", ".")):
 #    Modifications added to assist in changing matplotlib and plotly tick labels: p and scale parameters.
 #       These two parameters should be ignored in all other cases.
 
-# import locale
+# import locale as _locale
 def convert_numeral_systems(n, p=None, system_out="", system_in="latn", decimal=2, sep_in=["", "."], sep_out=["", "."], scale=None):
-    locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
+    _locale.setlocale(_locale.LC_ALL, "en_US.UTF-8")
     decimal_places = decimal
     if system_in == "latn" and sep_in == ["", "."]:
         n = n / scale if scale else n
         format_string = '%0.' + str(decimal_places) + 'f' if type(n) == float else '%d'
-        n = locale.format_string(format_string, n, grouping=True, monetary=True)
+        n = _locale.format_string(format_string, n, grouping=True, monetary=True)
         n = n.replace(",", "ṯ").replace(".", "ḏ")
         #n = str(n)
     if sep_in[0] in [" ", ",", "٬", "\u2009", "\u202F"]:
@@ -145,7 +146,7 @@ def convert_numeral_systems(n, p=None, system_out="", system_in="latn", decimal=
     except KeyError:
         sep = sep_out
     t = n.maketrans(data[system_in]["digits"], data[system_out]["digits"])
-    locale.setlocale(locale.LC_ALL, "")
+    _locale.setlocale(_locale.LC_ALL, "")
     return n.translate(t).replace("ṯ", sep[0] ).replace("ḏ", sep[1])
 
 
@@ -159,12 +160,12 @@ def convert_numeral_systems(n, p=None, system_out="", system_in="latn", decimal=
 #
 
 def convert_to_arab_ns(n, p=None, decimal=2, sep_in=["", "."], sep_out=["\u066C", "\u066B"], scale=None):
-    locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
+    _locale.setlocale(_locale.LC_ALL, "en_US.UTF-8")
     decimal_places = decimal
     if sep_in == ["", "."]:
         n = n * scale if scale else n
         format_string = '%0.' + str(decimal_places) + 'f' if type(n) == float else '%d'
-        n = locale.format_string(format_string, n, grouping=True, monetary=True)
+        n = _locale.format_string(format_string, n, grouping=True, monetary=True)
         n = n.replace(",", "ṯ").replace(".", "ḏ")
     if sep_in[0] in [" ", ",", "٬", "\u2009", "\u202F"]:
         n = n.replace(r'[\u0020,٬\u2009\u202F]', "ṯ")
@@ -174,32 +175,32 @@ def convert_to_arab_ns(n, p=None, decimal=2, sep_in=["", "."], sep_out=["\u066C"
         n = n.replace(r'[,.٫]', "ḏ")
     #sep = sep_out
     t = n.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
-    locale.setlocale(locale.LC_ALL, "")
+    _locale.setlocale(_locale.LC_ALL, "")
     return n.translate(t).replace("ṯ", sep_out[0] ).replace("ḏ", sep_out[1])
 
 convert_to_kurdish_ns = convert_to_arab_ns
 
 #
-# icu.icu.Locale formatted numbers using PyICU
+# _icu._icu.Locale formatted numbers using PyICU
 #   Supports both integers and floating point numbers.
 #
 # Usage:
-#   icu_formatted_digits(112345.05)
-#   icu_formatted_digits(112345.05, loc=icu.icu.Locale.getFrench())
-#   icu_formatted_digits(112345.05, loc=icu.icu.Locale("hi_IN@numbers=deva"))
-#   icu_formatted_digits(112345.05, loc=icu.icu.Locale.forLanguageTag("my-MM-u-nu-mymr"))
-#   icu_formatted_digits(112345.05, loc=icu.icu.Locale("ckb_IQ@numbers=arab"))
-#   icu_formatted_digits(112345.05, loc=icu.icu.Locale.forLanguageTag("ckb-IQ-u-nu-arab"))
-#   icu_formatted_digits(112345.05, loc=icu.icu.Locale.forLanguageTag("ckb-IR-u-nu-arabext"))
+#   _icu_formatted_digits(112345.05)
+#   _icu_formatted_digits(112345.05, loc=_icu._icu.Locale.getFrench())
+#   _icu_formatted_digits(112345.05, loc=_icu._icu.Locale("hi_IN@numbers=deva"))
+#   _icu_formatted_digits(112345.05, loc=_icu._icu.Locale.forLanguageTag("my-MM-u-nu-mymr"))
+#   _icu_formatted_digits(112345.05, loc=_icu._icu.Locale("ckb_IQ@numbers=arab"))
+#   _icu_formatted_digits(112345.05, loc=_icu._icu.Locale.forLanguageTag("ckb-IQ-u-nu-arab"))
+#   _icu_formatted_digits(112345.05, loc=_icu._icu.Locale.forLanguageTag("ckb-IR-u-nu-arabext"))
 
 
-def icu_formatted_digits(digit, p=None, loc=icu.Locale.getRoot()):
+def _icu_formatted_digits(digit, p=None, loc=_icu.Locale.getRoot()):
     """_summary_
 
     Args:
         digit (int or float): _description_
         p (int, optional): Precision. Defaults to None.
-        loc (icu.Locale, optional): Locale object for formatted numbers. Defaults to icu Root Locale.
+        loc (_icu.Locale, optional): Locale object for formatted numbers. Defaults to _icu Root Locale.
 
     Returns:
         _type_: _description_
@@ -207,12 +208,12 @@ def icu_formatted_digits(digit, p=None, loc=icu.Locale.getRoot()):
     # TODO:
     #   * add support for precision
     if loc is None:
-        loc = icu.Locale.getRoot()
-    if int(icu.ICU_MAX_MAJOR_VERSION) >= 60:
-        formatter = icu.LocalizedNumberFormatter(loc)
+        loc = _icu.Locale.getRoot()
+    if int(_icu.ICU_MAX_MAJOR_VERSION) >= 60:
+        formatter = _icu.LocalizedNumberFormatter(loc)
         r = formatter.formatDouble(digit) if isinstance(digit, float) else formatter.formatInt(digit)
     else:
-        formatter = icu.NumberFormat.createInstance(loc)
+        formatter = _icu.NumberFormat.createInstance(loc)
         r = formatter.format(digit)
     return r
 
@@ -230,16 +231,16 @@ def icu_formatted_digits(digit, p=None, loc=icu.Locale.getRoot()):
 # eli.convert_digits('٣٫١٤١٥٩٢٦٥٣٥٨', sep=('', "\u066B"), use_icu=True)
 # 3.14159265358
 #
-# icu_formatted_digits(1234563133, loc=icu.Locale('en_IN'))
+# _icu_formatted_digits(1234563133, loc=_icu.Locale('en_IN'))
 # '1,23,45,63,133'
 #
-# icu_formatted_digits(1234563133, loc=icu.Locale('hi_IN'))
+# _icu_formatted_digits(1234563133, loc=_icu.Locale('hi_IN'))
 # '1,23,45,63,133'
 #
-# icu_formatted_digits(1234563133, loc=icu.Locale.forLanguageTag('hi-IN-u-nu-deva'))
+# _icu_formatted_digits(1234563133, loc=_icu.Locale.forLanguageTag('hi-IN-u-nu-deva'))
 # '१,२३,४५,६३,१३३'
 #
-# locale = icu.Locale.forLanguageTag(lang)
-# icu_formatted_digits(12345, loc=locale)
+# locale = _icu.Locale.forLanguageTag(lang)
+# _icu_formatted_digits(12345, loc=locale)
 # '१२,३४५'
 

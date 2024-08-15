@@ -7,13 +7,12 @@
         * refactor type hinting for Python 3.10+
 """
 
-import regex
-import arabic_reshaper
-from bidi.algorithm import get_display
-from pyfribidi import log2vis, RTL
-import regex
-from collections import Counter
-import unicodedataplus
+import regex as _regex
+import arabic_reshaper as _arabic_reshaper
+from bidi.algorithm import get_display as _get_display
+from pyfribidi import log2vis as _log2vis, RTL as _RTL
+from collections import Counter as _Counter
+import unicodedataplus as _unicodedataplus
 
 ####################
 #
@@ -33,7 +32,7 @@ def is_bidi(text):
         bool: returns True if the string is RTL, returns False otherwise.
     """
     bidi_reg = r'[\p{bc=AL}\p{bc=AN}\p{bc=LRE}\p{bc=RLE}\p{bc=LRO}\p{bc=RLO}\p{bc=PDF}\p{bc=FSI}\p{bc=RLI}\p{bc=LRI}\p{bc=PDI}\p{bc=R}]'
-    return bool(regex.search(bidi_reg, text))
+    return bool(_regex.search(bidi_reg, text))
 
 isbidi = is_bidi
 
@@ -98,7 +97,7 @@ def strip_bidi(text):
     Returns:
         str: _description_
     """
-    return regex.sub('[\u202a-\u202e\u2066-\u2069]', '', text)
+    return _regex.sub('[\u202a-\u202e\u2066-\u2069]', '', text)
 
 ####################
 #
@@ -132,8 +131,8 @@ def rtl_hack(text: str, arabic: bool = True, fribidi: bool = True) -> str:
         str: _description_
     """
     if fribidi:
-        return log2vis(text, RTL)
-    return get_display(arabic_reshaper.reshape(text)) if arabic == True else get_display(text)
+        return _log2vis(text, _RTL)
+    return _get_display(_arabic_reshaper.reshape(text)) if arabic == True else _get_display(text)
 
 ####################
 #
@@ -146,13 +145,13 @@ def rtl_hack(text: str, arabic: bool = True, fribidi: bool = True) -> str:
 
 def has_presentation_forms(text):
     pattern = r'([\p{InAlphabetic_Presentation_Forms}\p{InArabic_Presentation_Forms-A}\p{InArabic_Presentation_Forms-B}]+)'
-    return bool(regex.findall(pattern, text))
+    return bool(_regex.findall(pattern, text))
 
 def clean_presentation_forms(text, folding=False):
     def clean_pf(match, folding):
-        return  match.group(1).casefold() if folding else unicodedataplus.normalize("NFKC", match.group(1))
+        return  match.group(1).casefold() if folding else _unicodedataplus.normalize("NFKC", match.group(1))
     pattern = r'([\p{InAlphabetic_Presentation_Forms}\p{InArabic_Presentation_Forms-A}\p{InArabic_Presentation_Forms-B}]+)'
-    return regex.sub(pattern, lambda match, folding=folding: clean_pf(match, folding), text)
+    return _regex.sub(pattern, lambda match, folding=folding: clean_pf(match, folding), text)
 
 def scan_bidi(text):
     """Analyse string for bidi support.
@@ -173,12 +172,12 @@ def scan_bidi(text):
         Tuple[bool, bool, bool, bool, bool, Set[Optional[str]], bool]: Summary of bidi support analysis
     """
     bidi_status = is_bidi(text)
-    isolates = bool(regex.search(r'[\u2066\u2067\u2068]', text)) and bool(regex.search(r'\u2069', text))
-    embeddings = bool(regex.search(r'[\u202A\u202B]', text)) and bool(regex.search(r'\u202C', text))
-    marks = bool(regex.search(r'[\u200E\u200F]', text))
-    overrides = bool(regex.search(r'[\u202D\u202E]', text)) and bool(regex.search(r'\u202C', text))
-    formating_characters = set(regex.findall(r'[\u200e\u200f\u202a-\u202e\u2066-\u2069]', text))
-    formating_characters = {f"U+{ord(c):04X} ({unicodedataplus.name(c,'-')})" for c in formating_characters if formating_characters is not None}
+    isolates = bool(_regex.search(r'[\u2066\u2067\u2068]', text)) and bool(_regex.search(r'\u2069', text))
+    embeddings = bool(_regex.search(r'[\u202A\u202B]', text)) and bool(_regex.search(r'\u202C', text))
+    marks = bool(_regex.search(r'[\u200E\u200F]', text))
+    overrides = bool(_regex.search(r'[\u202D\u202E]', text)) and bool(_regex.search(r'\u202C', text))
+    formating_characters = set(_regex.findall(r'[\u200e\u200f\u202a-\u202e\u2066-\u2069]', text))
+    formating_characters = {f"U+{ord(c):04X} ({_unicodedataplus.name(c,'-')})" for c in formating_characters if formating_characters is not None}
     presentation_forms = has_presentation_forms(text)
     return (bidi_status, isolates, embeddings, marks, overrides, formating_characters, presentation_forms)
 
@@ -193,7 +192,7 @@ scan = scan_bidi
 ####################
 
 def first_strong(s):
-    properties = ['ltr' if v == "L" else 'rtl' if v in ["AL", "R"] else "-" for v in [unicodedataplus.bidirectional(c) for c in list(s)]]
+    properties = ['ltr' if v == "L" else 'rtl' if v in ["AL", "R"] else "-" for v in [_unicodedataplus.bidirectional(c) for c in list(s)]]
     for value in properties:
         if value == "ltr":
             return "ltr"
@@ -202,7 +201,7 @@ def first_strong(s):
     return None
 
 def dominant_strong_direction(s):
-    count = Counter([unicodedataplus.bidirectional(c) for c in list(s)])
+    count = _Counter([_unicodedataplus.bidirectional(c) for c in list(s)])
     rtl_count = count['R'] + count['AL'] + count['RLE'] + count["RLI"]
     ltr_count = count['L'] + count['LRE'] + count["LRI"] 
     return "rtl" if rtl_count > ltr_count else "ltr"

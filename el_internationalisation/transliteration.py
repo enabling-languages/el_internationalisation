@@ -1,9 +1,10 @@
-import regex, icu, collections, pathlib, sys
+import regex as _regex, icu as _icu, collections as _collections
+import pathlib as _pathlib, sys as _sys
 from .transliteration_data import SUPPORTED_TRANSLITERATORS, TRANSLIT_DATA
 from .ustrings import normalise
-import copy
-import requests
-import xml.etree.ElementTree as ET
+import copy as _copy
+import requests as _requests
+import xml.etree.ElementTree as _ET
 
 # TODO:
 #  * add type hinting
@@ -12,7 +13,7 @@ import xml.etree.ElementTree as ET
 DEFAULT_NF = "NFM21"
 
 def toNFM21(text, engine="ud"):
-    if engine.lower() == "icu":
+    if engine.lower() == "_icu":
         return normalise("NFM21", text)
     return normalise("NFM21", text)
 
@@ -44,18 +45,18 @@ def el_transliterate(source, lang, dir = "forward", nf = DEFAULT_NF):
         nf = nf.upper() if nf.upper() in ["NFC", "NFKC", "NFKC_CF", "NFD", "NFKD", "NFM"] else DEFAULT_NF
         source = prep_string(source, dir, lang, translit_table[1])
         if dir == "forward":
-            collator = icu.Collator.createInstance(icu.Locale.getRoot())
+            collator = _icu.Collator.createInstance(_icu.Locale.getRoot())
         else:
-            collator = icu.Collator.createInstance(icu.Locale(lang))
-        if dir == "reverse" and lang in list(icu.Collator.getAvailableLocales().keys()):
-            collator = icu.Collator.createInstance(icu.Locale(lang))
+            collator = _icu.Collator.createInstance(_icu.Locale(lang))
+        if dir == "reverse" and lang in list(_icu.Collator.getAvailableLocales().keys()):
+            collator = _icu.Collator.createInstance(_icu.Locale(lang))
         else:
-            collator = icu.Collator.createInstance(icu.Locale.getRoot())
-        word_dict = collections.OrderedDict(sorted(TRANSLIT_DATA[translit_table[0]]['translit_dict'][dir].items(), reverse=True, key=lambda x: collator.getSortKey(x[0])))
+            collator = _icu.Collator.createInstance(_icu.Locale.getRoot())
+        word_dict = _collections.OrderedDict(sorted(TRANSLIT_DATA[translit_table[0]]['translit_dict'][dir].items(), reverse=True, key=lambda x: collator.getSortKey(x[0])))
         word_dict = {normalise(DEFAULT_NF, k): normalise(DEFAULT_NF, v) for k, v in word_dict.items()}
         label = translit_table[2]
         if dir == "reverse":
-            source_split = regex.split(r'(\W+?)', source)
+            source_split = _regex.split(r'(\W+?)', source)
             res = "".join(word_dict.get(ele, ele) for ele in source_split)
         else:
             from functools import reduce
@@ -74,17 +75,17 @@ def el_transliterate(source, lang, dir = "forward", nf = DEFAULT_NF):
 
 # Available transforms
 def available_transforms(term = None):
-    available = list(icu.Transliterator.getAvailableIDs())
+    available = list(_icu.Transliterator.getAvailableIDs())
     if term is None:
         return available
     return [x for x in available if term.lower() in x.lower()]
 
 # transliterate from inbuilt ICU transform
-def translit_icu(source, transform):
+def translit__icu(source, transform):
     if transform not in available_transforms():
-        print(f'Unsupported transformation. Not available in icu4c {icu.ICU_VERSION}')
+        print(f'Unsupported transformation. Not available in _icu4c {_icu.ICU_VERSION}')
         return
-    transformer = icu.Transliterator.createInstance(transform)
+    transformer = _icu.Transliterator.createInstance(transform)
     if isinstance(source, list):
         return [transformer.transliterate(item) for item in source]
     return transformer.transliterate(source)
@@ -105,10 +106,10 @@ def read_ldml_rules(ldml_file):
         if r is None:
             r = ldml_xml.find('./transforms/transform')
         if r is None:
-            sys.stderr(f"Can't find transform in {rules_file}")
-        pattern = regex.compile(r'[ \t]{2,}|[ ]*#.+\n')
-        rules = regex.sub(pattern, '', r.find('./tRule').text)
-        rules = regex.sub('[\n#]', '', rules)
+            _sys.stderr(f"Can't find transform in {rules_file}")
+        pattern = _regex.compile(r'[ \t]{2,}|[ ]*#.+\n')
+        rules = _regex.sub(pattern, '', r.find('./tRule').text)
+        rules = _regex.sub('[\n#]', '', rules)
         rules_name = r.attrib['alias'].split()[0]
         reverse_name = ''
         # if r.attrib['backwardAlias']:
@@ -118,10 +119,10 @@ def read_ldml_rules(ldml_file):
 
     def get_ldml(rules_file):
         if rules_file.startswith(('https://', 'http://')):
-            r=requests.get(rules_file)
-            doc = ET.ElementTree(ET.fromstring(r.content.decode('UTF-8')))
+            r=_requests.get(rules_file)
+            doc = _ET.ElementTree(_ET.fromstring(r.content.decode('UTF-8')))
         else:
-            doc = ET.parse(rules_file)
+            doc = _ET.parse(rules_file)
         return extract_rules(doc, rules_file)
 
     rules_tuple = get_ldml(ldml_file)
@@ -130,26 +131,26 @@ def read_ldml_rules(ldml_file):
 # Register transformer form LDML file
 def register_ldml(ldml_file):
     ldml_rules = read_ldml_rules(ldml_file)
-    ldml_transformer = icu.Transliterator.createFromRules(ldml_rules[1], ldml_rules[0], icu.UTransDirection.FORWARD)
-    icu.Transliterator.registerInstance(ldml_transformer)
+    ldml_transformer = _icu.Transliterator.createFromRules(ldml_rules[1], ldml_rules[0], _icu.UTransDirection.FORWARD)
+    _icu.Transliterator.registerInstance(ldml_transformer)
     if ldml_rules[2]:
-        reverse_ldml_transformer = icu.Transliterator.createFromRules(ldml_rules[2], ldml_rules[0], icu.UTransDirection.REVERSE)
-        icu.Transliterator.registerInstance(reverse_ldml_transformer)
+        reverse_ldml_transformer = _icu.Transliterator.createFromRules(ldml_rules[2], ldml_rules[0], _icu.UTransDirection.REVERSE)
+        _icu.Transliterator.registerInstance(reverse_ldml_transformer)
 
 # transform from custom rules
-def translit_rules(source, rules, direction = icu.UTransDirection.FORWARD, name = "Custom"):
+def translit_rules(source, rules, direction = _icu.UTransDirection.FORWARD, name = "Custom"):
     """Text transformation (transliteration) using custom rules or LDML files.
 
     Args:
         source (str | list[str]): String or List of strings to be transformed.
         rules (str): Rules to use for transformation.
-        direction (int, optional): Direction of transformation (forward or reverse). Defaults to icu.UTransDirection.FORWARD.
+        direction (int, optional): Direction of transformation (forward or reverse). Defaults to _icu.UTransDirection.FORWARD.
         name (str, optional): Label for transformation. Defaults to "Custom".
 
     Returns:
         str | list[str]: Transformed string or list.
     """
-    transformer = icu.Transliterator.createFromRules(name, rules, direction)
+    transformer = _icu.Transliterator.createFromRules(name, rules, direction)
     if isinstance(source, list):
         return [transformer.transliterate(item) for item in source]
     return transformer.transliterate(source)
@@ -164,7 +165,7 @@ def set_ldml_file_path(raw_path):
     Returns:
         str: return a resolved path as a string.
     """
-    p = pathlib.Path(raw_path)
+    p = _pathlib.Path(raw_path)
     try:
         p = p.resolve(strict=True)
     except FileNotFoundError:
@@ -177,21 +178,21 @@ def set_ldml_file_path(raw_path):
 # Get language subtag form a BCP-47 langauge tage or from a locale label
 def get_lang_subtag(lang):
     subtags = lang.replace("-", "_").split('_')
-    remainder = copy.deepcopy(subtags)
+    remainder = _copy.deepcopy(subtags)
     lang_subtag = subtags[0]
     remainder.pop(0)
     script_subtag = ""
     country_subtag = ""
     # if len(subtags) > 1:
     if 1 < len(subtags):
-        if bool(regex.match(r"^([A-Z][a-z]{3})$", subtags[1])):
+        if bool(_regex.match(r"^([A-Z][a-z]{3})$", subtags[1])):
             script_subtag = subtags[1]
             remainder.pop(0)
-        elif bool(regex.match(r"^([A-Z]{2})$", subtags[1])):
+        elif bool(_regex.match(r"^([A-Z]{2})$", subtags[1])):
             country_subtag = subtags[1]
             remainder.pop(0)
     if 2 < len(subtags):
-        if bool(regex.match(r"^([A-Z]{2})$", subtags[2])):
+        if bool(_regex.match(r"^([A-Z]{2})$", subtags[2])):
             country_subtag = subtags[2]
             remainder.pop(0)
     remainder_str = "-".join(remainder) if len(remainder) > 0 else ""
@@ -206,22 +207,22 @@ def translit_dict(source, lang, dir = "forward", nf = DEFAULT_NF):
         nf = nf.upper() if nf.upper() in ["NFC", "NFKC", "NFKC_CF", "NFD", "NFKD", "NFM21"] else DEFAULT_NF
         # source = prep_string(source, dir, lang, translit_table[1])
         # if dir == "forward":
-        #     collator = icu.Collator.createInstance(icu.Locale.getRoot())
+        #     collator = _icu.Collator.createInstance(_icu.Locale.getRoot())
         # else:
-        #     collator = icu.Collator.createInstance(icu.Locale(lang))
-        # if dir == "reverse" and lang in list(icu.Collator.getAvailableLocales().keys()):
-        #     collator = icu.Collator.createInstance(icu.Locale(lang))
+        #     collator = _icu.Collator.createInstance(_icu.Locale(lang))
+        # if dir == "reverse" and lang in list(_icu.Collator.getAvailableLocales().keys()):
+        #     collator = _icu.Collator.createInstance(_icu.Locale(lang))
         # else:
-        #     collator = icu.Collator.createInstance(icu.Locale.getRoot())
-        if dir == "reverse" and lang in list(icu.Collator.getAvailableLocales().keys()):
-            collator = icu.Collator.createInstance(icu.Locale(lang))
+        #     collator = _icu.Collator.createInstance(_icu.Locale.getRoot())
+        if dir == "reverse" and lang in list(_icu.Collator.getAvailableLocales().keys()):
+            collator = _icu.Collator.createInstance(_icu.Locale(lang))
         else:
-            collator = icu.Collator.createInstance(icu.Locale.getRoot())
-        word_dict = collections.OrderedDict(sorted(TRANSLIT_DATA[translit_table[0]]['translit_dict'][dir].items(), reverse=True, key=lambda x: collator.getSortKey(x[0])))
+            collator = _icu.Collator.createInstance(_icu.Locale.getRoot())
+        word_dict = _collections.OrderedDict(sorted(TRANSLIT_DATA[translit_table[0]]['translit_dict'][dir].items(), reverse=True, key=lambda x: collator.getSortKey(x[0])))
         word_dict = {normalise(DEFAULT_NF, k): normalise(DEFAULT_NF, v) for k, v in word_dict.items()}
         label = translit_table[2]
         if dir == "reverse":
-            source_split = regex.split(r'(\W+?)', source)
+            source_split = _regex.split(r'(\W+?)', source)
             res = "".join(word_dict.get(ele, ele) for ele in source_split)
         else:
             from functools import reduce
@@ -256,7 +257,7 @@ def to_ascii(text: str, latin_only: bool = True) -> str:
         str: Transformed string.
     """
     if latin_only:
-        transliterator = icu.Transliterator.createInstance('Latin-ASCII')
+        transliterator = _icu.Transliterator.createInstance('Latin-ASCII')
     else:
-        transliterator = icu.Transliterator.createInstance('Any-Latin; Latin-ASCII')
+        transliterator = _icu.Transliterator.createInstance('Any-Latin; Latin-ASCII')
     return transliterator.transliterate(text)

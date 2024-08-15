@@ -7,12 +7,12 @@
 #
 ####################################################################################################
 
-import regex
-import types
+import regex as _regex
+import types as _types
 # from el_internationalisation import rtl_hack
 # from .bidi import rtl_hack
 
-dir_formatting = types.SimpleNamespace()
+dir_formatting = _types.SimpleNamespace()
 
 dir_formatting.LTR_ISOLATE: str = '\u2066'
 dir_formatting.RTL_ISOLATE: str = '\u2067'
@@ -45,7 +45,7 @@ other_start = [
 formatting_chars_pattern: str = rf'[{",".join(formatting_chars)}]'
 
 def has_any_dir_format_chars(text: str) -> bool:
-    return bool(regex.search(formatting_chars_pattern, text))
+    return bool(_regex.search(formatting_chars_pattern, text))
 
 # # U+061C ARABIC LETTER MARK
 # ARABIC LETTER MARK = '\u061C'
@@ -57,7 +57,7 @@ def has_any_dir_format_chars(text: str) -> bool:
 # solitary_chars_pattern: str = r'[\u061C\u200E\u200F]'
 
 # def hasAnySolitaryDirFormatChars(text: str) -> bool:
-#     return bool(regex.search(solitary_chars_pattern, text))
+#     return bool(_regex.search(solitary_chars_pattern, text))
 
 
 

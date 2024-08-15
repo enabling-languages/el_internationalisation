@@ -1,10 +1,10 @@
-import regex
-import html
+import regex as _regex
+import html as _html
 from .ustrings import normalise, codepoints
-from lxml import etree
-from typing import Union
-import unicodedataplus
-import icu
+from lxml import etree as _etree
+from typing import Union as _Union
+import unicodedataplus as _unicodedataplus
+import icu as _icu
 
 # Languages to normalise : ISO-639-1 and ISO-639-2/B language codes.
 thai_lao_rom_languages = ["lao", "lo", "tha", "th"]
@@ -18,7 +18,7 @@ cyrillic_rom_languages = ["ab","abk","abk","abq","ady","ady","alt","alt","alt","
 ##############################
 # Default value:
 # THAI_LAO_ROM: str = None
-# def set_THAI_LAO_ROM(value: Union[str, None] = None) -> Union[str, None]:
+# def set_THAI_LAO_ROM(value: _Union[str, None] = None) -> _Union[str, None]:
 #     """Set value of THAI_LAO_ROM to 1997 or 2011.
 # 
 #     Changes in the 2011 Thai and Lao romanisation tables leds to 
@@ -79,12 +79,12 @@ def clean_cyrillic_rom(item: str) -> str:
     Returns:
         str: Normalised string
     """
-    item = regex.sub(r'([tT])\uFE20([sS])\uFE21\u0307', r'\1\u0361\u034F\u0307\2', item)
-    item = regex.sub(r'([tT])\uFE20\u0307([sS])\uFE21', r'\1\u0361\u034F\u0307\2', item)
-    item = regex.sub(r'([oO])\u0304\uFE20([tT])\uFE21', r'\1\u0304\u0361\2', item)
-    item = regex.sub(r'([iI])\uFE20([eEoO])\u0328\uFE21', r'\1\u0361\2\u0328', item)
-    item = regex.sub(r'([dD])\uFE20([zZ])\u030C\uFE21', r'\1\u0361\1\u030C', item)
-    item = regex.sub(r'([dDiIkKpnNPtTzZ])\uFE20([aAeEhHgGnNoOsSuUzZ])\uFE21', r'\1\u0361\2', item)
+    item = _regex.sub(r'([tT])\uFE20([sS])\uFE21\u0307', r'\1\u0361\u034F\u0307\2', item)
+    item = _regex.sub(r'([tT])\uFE20\u0307([sS])\uFE21', r'\1\u0361\u034F\u0307\2', item)
+    item = _regex.sub(r'([oO])\u0304\uFE20([tT])\uFE21', r'\1\u0304\u0361\2', item)
+    item = _regex.sub(r'([iI])\uFE20([eEoO])\u0328\uFE21', r'\1\u0361\2\u0328', item)
+    item = _regex.sub(r'([dD])\uFE20([zZ])\u030C\uFE21', r'\1\u0361\1\u030C', item)
+    item = _regex.sub(r'([dDiIkKpnNPtTzZ])\uFE20([aAeEhHgGnNoOsSuUzZ])\uFE21', r'\1\u0361\2', item)
     return item
 
 ##############################
@@ -93,7 +93,7 @@ def clean_cyrillic_rom(item: str) -> str:
 #
 ##############################
 
-def clean_marc_subfield(item: str, lang: str, norm_form: str = "NFD", thai_lao_rom: Union[str, None] = None, cyrillic_rom: bool = False ) -> str:
+def clean_marc_subfield(item: str, lang: str, norm_form: str = "NFD", thai_lao_rom: _Union[str, None] = None, cyrillic_rom: bool = False ) -> str:
     """_summary_
 
     Args:
@@ -104,8 +104,8 @@ def clean_marc_subfield(item: str, lang: str, norm_form: str = "NFD", thai_lao_r
     Returns:
         str: _description_
     """
-    if regex.search(r'&#', item):
-        item = normalise("NFD", html.unescape(item), use_icu=True)
+    if _regex.search(r'&#', item):
+        item = normalise("NFD", _html.unescape(item), use_icu=True)
     else:
         item = normalise("NFD", item, use_icu=True)
     norm_form = norm_form.upper()
@@ -165,8 +165,8 @@ def repair_smp(text: str, script: str) -> str:
         "yezi": (r'&#x0[eE][8-9A-Ba-b][0-9A-Fa-f];', r'&#x0[eE]', r'&#x10e')
     }
     try:
-        if regex.match(repair_data[script][0], text):
-            return regex.sub(repair_data[script][1], repair_data[script][2], text)
+        if _regex.match(repair_data[script][0], text):
+            return _regex.sub(repair_data[script][1], repair_data[script][2], text)
         else:
             return text
     except KeyError:
@@ -182,12 +182,12 @@ def repair_smp(text: str, script: str) -> str:
 #
 
 def xsl_transformation(xslfile, xmlfile = None, xmlstring = None, params={}):
-    xslt_tree = etree.parse(xslfile)
-    transform = etree.XSLT(xslt_tree)
+    xslt_tree = _etree.parse(xslfile)
+    transform = _etree.XSLT(xslt_tree)
     xml_contents = xmlstring
     if not xml_contents:
         if xmlfile:
-            xml_contents = etree.parse(xmlfile)
+            xml_contents = _etree.parse(xmlfile)
     result = transform(xml_contents, **params)
     return result
 
@@ -199,21 +199,21 @@ def xsl_transformation(xslfile, xmlfile = None, xmlstring = None, params={}):
 #
 #
 #
-problem_chars_pattern = regex.compile(r'[\p{Bidi_Control}\p{Cs}\p{Co}\p{Cn}\u0333\u3013\uFFFD]')
-# problem_chars_pattern = regex.compile(r'[\p{Cf}\p{Cs}\p{Co}\p{Cn}\u0333\u3013\uFFFD]')
+problem_chars_pattern = _regex.compile(r'[\p{Bidi_Control}\p{Cs}\p{Co}\p{Cn}\u0333\u3013\uFFFD]')
+# problem_chars_pattern = _regex.compile(r'[\p{Cf}\p{Cs}\p{Co}\p{Cn}\u0333\u3013\uFFFD]')
 problem_chars = ['\u0333', '\u3013', '\uFFFD']
-problem_chars.extend(list(icu.UnicodeSet(r'\p{Bidi_Control}')))
-# problem_chars.extend(list(icu.UnicodeSet(r'\p{Cf}')))
-problem_chars.extend(list(icu.UnicodeSet(r'\p{Cs}')))
-problem_chars.extend(list(icu.UnicodeSet(r'\p{Co}')))
-problem_chars.extend(list(icu.UnicodeSet(r'\p{Cn}')))
+problem_chars.extend(list(_icu.UnicodeSet(r'\p{Bidi_Control}')))
+# problem_chars.extend(list(_icu.UnicodeSet(r'\p{Cf}')))
+problem_chars.extend(list(_icu.UnicodeSet(r'\p{Cs}')))
+problem_chars.extend(list(_icu.UnicodeSet(r'\p{Co}')))
+problem_chars.extend(list(_icu.UnicodeSet(r'\p{Cn}')))
 
 def detect_anomalies(text: str) -> set[str]:
     problematic = set()
-    if regex.search(problem_chars_pattern, text):
+    if _regex.search(problem_chars_pattern, text):
         for char in problem_chars:
             if char in text:
-                problematic.add(f"{codepoints(char)} ({unicodedataplus.name(char)})")
+                problematic.add(f"{codepoints(char)} ({_unicodedataplus.name(char)})")
     return problematic
 
 def register_anomalies(sub_field: str):

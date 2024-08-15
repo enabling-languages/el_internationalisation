@@ -1,5 +1,5 @@
-from typing import List, Optional
-import icu
+from typing import List as _List, Optional as _Optional
+import icu as _icu
 from .ustrings import gr
 
 def list_to_string(items, sep = ', ', drop_bool = True):
@@ -93,7 +93,7 @@ def available_methods(clss: str, search_string: str | None = None, mode: str = "
         List[str] | None: List of methods available in a class that match query.
     """
     mode = "script" if mode.lower() != "cli" else "cli"
-    methods: List[str] = []
+    methods: _List[str] = []
     if search_string:
         methods = [item for item in list(dir(clss)) if search_string.lower() in item.lower()]
     else:
@@ -103,7 +103,7 @@ def available_methods(clss: str, search_string: str | None = None, mode: str = "
         return None
     return methods
 
-def character_requirements(languages: List[str], ngraphs: bool = False, keep_graphemes: bool = True, auxiliary: bool = False, basic_latin: bool = True) -> List[str]:
+def character_requirements(languages: _List[str], ngraphs: bool = False, keep_graphemes: bool = True, auxiliary: bool = False, basic_latin: bool = True) -> _List[str]:
     """Generate a list of characters required for a language or locale.
 
     Uses CLDR locale data to identify characters required for a language or locale.
@@ -118,15 +118,15 @@ def character_requirements(languages: List[str], ngraphs: bool = False, keep_gra
     Returns:
         List[str]: _description_
     """
-    collator = icu.Collator.createInstance(icu.Locale.getRoot())
+    collator = _icu.Collator.createInstance(_icu.Locale.getRoot())
     letters = []
     for language in languages:
-        ld = icu.LocaleData(language)
-        us = ld.getExemplarSet(icu.ULocaleDataExemplarSetType.ES_STANDARD)
+        ld = _icu.LocaleData(language)
+        us = ld.getExemplarSet(_icu.ULocaleDataExemplarSetType.ES_STANDARD)
         if auxiliary:
-            us.addAll(ld.getExemplarSet(icu.ULocaleDataExemplarSetType.ES_AUXILIARY))
+            us.addAll(ld.getExemplarSet(_icu.ULocaleDataExemplarSetType.ES_AUXILIARY))
         if not basic_latin:
-            us.removeAll(icu.UnicodeSet(r'\p{Ascii}'))
+            us.removeAll(_icu.UnicodeSet(r'\p{Ascii}'))
         letters = [*letters, *us]
     if not ngraphs:
         if keep_graphemes:
@@ -147,7 +147,7 @@ def max_len_terminal(phrase_list):
 
 max_width = max_len_terminal
 
-def find_char_index(character:str, ustring:str) -> Optional[int]:
+def find_char_index(character:str, ustring:str) -> _Optional[int]:
     """Find index of the first occurrence of a character in string.
 
     Args:
