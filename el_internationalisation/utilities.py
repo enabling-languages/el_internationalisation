@@ -81,7 +81,7 @@ def search_dict_keys(dictionary, searchString):
     """
     return dictionary[searchString] if dictionary.get(searchString) != None else None
 
-def available_methods(clss: str, search_string: str | None = None, mode: str = "cli") -> List[str] | None:
+def available_methods(clss: str, search_string: str | None = None, mode: str = "cli") -> _List[str] | None:
     """List class methods for specified class that match a search string.
 
     Args:
