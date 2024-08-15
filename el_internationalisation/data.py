@@ -12,8 +12,13 @@ from hexdump import hexdump
 #   * https://util.unicode.org/UnicodeJsps/properties.jsp
 
 BINARY_PROPERTIES = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 36, 42, 43, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
+ICU_VERSION = float('.'.join(icu.ICU_VERSION.split('.')[0:2]))
 
-def get_property(char: str, property: int, short_name: bool = False) -> str | bool | None:
+class InvalidCharLengthException(Exception):
+    "Raised when the method requires exactly one character, but additional characters were given."
+    pass
+
+def get_property(char: str, property: int, short_name: bool = False, max_ver: float | None = None) -> str | bool | None:
     """_summary_
 
     Args:
@@ -47,7 +52,6 @@ def get_property(char: str, property: int, short_name: bool = False) -> str | bo
 
     if property in BINARY_PROPERTIES:
         return icu.Char.hasBinaryProperty(char, property)
-
     name_choice = 0 if short_name else 1
     value = icu.Char.getIntPropertyValue(char, property)
     return icu.Char.getPropertyValueName(property, value, name_choice)
@@ -275,6 +279,26 @@ class ucd():
     def is_mirrored(self):
         return icu.Char.isMirrored(self._char)
 
+    def is_nfc(self):
+        char = self._char
+        norm_char = icu.Normalizer2.getNFCInstance().normalize(char)
+        return norm_char == char
+
+    def is_nfkc(self):
+        char = self._char
+        norm_char = icu.Normalizer2.getNFKCInstance().normalize(char)
+        return norm_char == char
+
+    def is_nfd(self):
+        char = self._char
+        norm_char = icu.Normalizer2.getNFDInstance().normalize(char)
+        return norm_char == char
+
+    def is_nfkd(self):
+        char = self._char
+        norm_char = icu.Normalizer2.getNFKDInstance().normalize(char)
+        return norm_char == char
+
     def is_print(self):
         return icu.Char.isprint(self._char)
 
@@ -335,6 +359,12 @@ class ucd():
 
     nfc_inert = partialmethod(_get_property, property = icu.UProperty.NFC_INERT, short_name = False)
     nfc_quick_check = partialmethod(_get_property, property = icu.UProperty.NFC_QUICK_CHECK, short_name = False)
+
+    def nfd_contains(self, uset=icu.UnicodeSet(r'[:Latin:]')) -> list[str]:
+        normalizer = icu.Normalizer2.getNFDInstance()
+        domain = list(uset)
+        return [item for item in domain if self._char in normalizer.normalize(item)]
+
     nfd_inert = partialmethod(_get_property, property = icu.UProperty.NFD_INERT, short_name = False)
     nfd_quick_check = partialmethod(_get_property, property = icu.UProperty.NFD_QUICK_CHECK, short_name = False)
 
@@ -343,6 +373,13 @@ class ucd():
 
     nfkc_inert = partialmethod(_get_property, property = icu.UProperty.NFKC_INERT, short_name = False)
     nfkc_quick_check = partialmethod(_get_property, property = icu.UProperty.NFKC_QUICK_CHECK, short_name = False)
+
+    def nfkd_contains(self, uset=icu.UnicodeSet(r'[:Latin:]')) -> list[str]:
+        # icu.ucd('b').nfkd_contains(icu.UnicodeSet(r'[:Any:]'))
+        normalizer = icu.Normalizer2.getNFKDInstance()
+        domain = list(uset)
+        return [item for item in domain if self._char in normalizer.normalize(item)]
+
     nfkd_inert = partialmethod(_get_property, property = icu.UProperty.NFKD_INERT, short_name = False)
     nfkd_quick_check = partialmethod(_get_property, property = icu.UProperty.NFKD_QUICK_CHECK, short_name = False)
     noncharacter_code_point = partialmethod(_get_property, property = icu.UProperty.NONCHARACTER_CODE_POINT, short_name = False)
@@ -457,8 +494,8 @@ class ucd_str():
     def characters(self):
         return [c.character() for c in self._chars]
 
-    def codepoints(self):
-        return [c.codepoint() for c in self._chars]
+    def codepoints(self, decimal=False):
+        return [c.codepoint(decimal) for c in self._chars]
 
     def in_set(self, uset):
         return [c.in_set(uset) for c in self._chars]
@@ -513,9 +550,69 @@ def unicode_data(text):
 
 udata = unicode_data
 
+def analyse_bytes(data, encoding = 'utf-8'):
+    if isinstance(data, str):
+        data = data.encode(encoding)
+    hexdump(data)
 
-# def analyse_bytes(data, encoding = 'utf-8'):
-#     if isinstance(data, str):
-#         data = data.encode(encoding)
-#     hexdump(data)
+def casing_data(char: str):
+    if len(char) > 1:
+        raise(InvalidCharLengthException)
+        print("Method takes a single character as a parameter.")
+    char = ucd(char)
+    upperc = (char.uppercase_mapping(), char.simple_uppercase_mapping())
+    titlec = (char.titlecase_mapping(), char.simple_titlecase_mapping())
+    lowerc = (char.lowercase_mapping(), char.simple_lowercase_mapping())
+    cfolding = (char.case_folding(), char.simple_case_folding())
+    console = Console()
+    table = Table(
+        show_header=True,
+        header_style="light_slate_blue",
+        title=f"Case mapping and folding",
+        box=box.SQUARE,
+        caption=f"Character: {char.character()}")
+    table.add_column("Operation")
+    table.add_column("Full")
+    table.add_column("Simple")
+    table.add_row("Uppercase", upperc[0], upperc[1])
+    table.add_row("Titlecase", titlec[0], titlec[1])
+    table.add_row("Lowercase", lowerc[0], lowerc[1])
+    table.add_row("Case folding", cfolding[0], cfolding[1])
+    console.print(table)
+    return None
 
+def uset_to_list(notation:str) -> list[str]:
+    uset = icu.UnicodeSet(notation) 
+    return list(uset)
+
+def uset_to_pattern(notation: str) -> str:
+    l = f'[{"".join(uset_to_list(notation))}]'
+    return str(icu.UnicodeSet(l).compact())
+
+def uset_contains(chars:str, notation:str, mode:str='') -> bool:
+    uset = icu.UnicodeSet(notation)
+    match mode.lower():
+        case 'all':
+            return uset.containsAll(chars)
+        case "some":
+            return uset.containsSome(chars)
+        case "none":
+            return uset.containsNone(chars)
+        case _:
+            return uset.contains(chars)
+
+def count_unicode_for_method(fn) -> int:
+    count = 0
+    for i in range(0x10FFFF + 1):
+        if fn(chr(i)):
+            count += 1
+    return count
+
+def get_unicode_chars_for_method(fn, cp: bool = False) -> list[str]:
+    chars = []
+    for i in range(0x10FFFF + 1):
+        if fn(chr(i)):
+            chars.append(chr(i))
+    if cp:
+       return [f'{ord(ch):04X}' for ch in chars]
+    return chars
