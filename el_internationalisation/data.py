@@ -743,7 +743,7 @@ def display_encoding_data(data, enc='utf-8', mode='codepoints_bytes'):
         show_header=False,
         title="Byte representation of string",
         box=_box.SQUARE,
-        caption=f"String: {text}\nEncoding: {enc}",
+        caption=f"String: {data}\nEncoding: {enc}",
         show_lines=True)
     for i in range(len(data)):
         table.add_column('', justify='center', vertical='middle')
