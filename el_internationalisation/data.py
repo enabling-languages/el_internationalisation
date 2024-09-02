@@ -491,6 +491,12 @@ class ucd_str():
         class_name = type(self).__name__
         return f"{class_name}(chars={self.characters()})"
 
+    def ages(self):
+        return [c.age() for c in self._chars]
+
+    def blocks(self):
+        return [c.block() for c in self._chars]
+
     def characters(self):
         return [c.character() for c in self._chars]
 
@@ -549,11 +555,6 @@ def unicode_data(text):
     return None
 
 udata = unicode_data
-
-def analyse_bytes(data, encoding = 'utf-8'):
-    if isinstance(data, str):
-        data = data.encode(encoding)
-    _hexdump(data)
 
 def casing_data(char: str):
     if len(char) > 1:
@@ -616,3 +617,155 @@ def get_unicode_chars_for_method(fn, cp: bool = False) -> list[str]:
     if cp:
        return [f'{ord(ch):04X}' for ch in chars]
     return chars
+
+
+
+def chars_to_codepoints(chars, decimal=False, enc='utf-8'):
+    enc = enc.lower()
+    result = []
+    for char in chars:
+        if ord(char) > 0xffff and enc == 'utf-16':
+            result.extend(bytes(char, 'utf-16-be').hex(' ', bytes_per_sep=2).upper().split())
+        else:
+            result.append(f'{ord(char):04X}')
+    if decimal:
+        return [int(r, 16) for r in result]
+    return result
+
+
+# chars_to_codepoints(s)
+# ['0061', '0062', '00E7', '0020', '1F60A']
+# chars_to_codepoints(s, True)
+# [97, 98, 231, 32, 128522]
+# chars_to_codepoints(s, enc='utf-16')
+# ['0061', '0062', '00E7', '0020', 'D83D', 'DE0A']
+# chars_to_codepoints(s, True, enc='utf-16')
+# [97, 98, 231, 32, 55357, 56842]
+
+def homogeneous_type(seq, typ):
+    return all(isinstance(x, typ) for x in seq)
+def codepoints_to_chars(codepoints, enc='utf-8'):
+    enc = enc.lower()
+    chars = [chr(c) for c in codepoints] if homogeneous_type(codepoints, int) else [chr(int(c, 16)) for c in codepoints]
+    if enc == 'utf-16':
+        return "".join(chars).encode('utf-16', 'surrogatepass').decode('utf-16')
+    return "".join(chars)
+
+# codepoints_to_chars(['0061', '0062', '00E7', '0020', '1F60A'])
+# 'abç 😊'
+# codepoints_to_chars([97, 98, 231, 32, 128522])
+# 'abç 😊'
+# codepoints_to_chars(['0061', '0062', '00E7', '0020', 'D83D', 'DE0A'], enc='utf-16')
+# 'abç 😊'
+# codepoints_to_chars([97, 98, 231, 32, 55357, 56842], enc='utf-16')
+# 'abç 😊'
+
+def get_bytes(data, enc):
+    byte_seq = []
+    for char in data:
+        try:
+            byte_seq.append(char.encode(enc).hex(' ').upper())
+        except UnicodeEncodeError:
+            byte_seq.append('')
+    return byte_seq
+
+def display_byte_sequences(data: str, enc: str = 'utf-8') -> None:
+    console = _Console()
+    table = _Table(
+        show_header=True,
+        header_style="light_slate_blue",
+        title="Byte representation of string",
+        box=_box.SQUARE,
+        caption=f"String: {data}\nEncoding: {enc}")
+    table.add_column("Character")
+    table.add_column("Bytes")
+    byte_seq = get_bytes(data=data, enc=enc)
+    for i, j in zip([*data], byte_seq):
+        table.add_row(i, j)
+    console.print(table)
+    return None
+
+# display_byte_sequences(input_chars, 'utf-8')
+# display_byte_sequences(input_chars, 'utf-16-be')
+# display_byte_sequences(input_chars, 'utf-32-be')
+# display_byte_sequences(input_chars, 'iso-8859-1')
+# display_byte_sequences(input_chars, 'iso-8859-19')
+# display_byte_sequences(input_chars, 'windows-1252')
+
+def get_code_units(text: str, enc: str = 'utf-8', decimal: bool = False, structured=False) -> list[str|int|list[str|int]]:
+    def is_structured(lst):
+        return any(isinstance(i, list) for i in lst)
+    if enc.lower() == 'utf-8':
+        enc = enc.lower()
+        bytes_per_sep = 1
+    elif enc.lower() in ['utf-16', 'utf-16-be', 'utf-16-le']:
+        enc = 'utf-16-be'
+        bytes_per_sep = 2
+    else:
+        enc = 'utf-32-be'
+        bytes_per_sep = 4
+    if structured:
+        result = [char.encode(enc).hex(' ', bytes_per_sep=bytes_per_sep).upper().split() for char in text]
+    else:
+        result = text.encode(enc).hex(' ', bytes_per_sep=bytes_per_sep).upper().split()
+    if decimal:
+        if is_structured(result):
+            result = [[int(h, 16) for h in r] for r in result]
+        else:
+            result =  [int(r, 16) for r in result]
+    return result
+
+# text = 'aéƒ'
+# get_code_units(text)
+# ['61', 'c3', 'a9', 'c6', '92']
+# get_code_units(text, decimal=True)
+# [97, 195, 169, 198, 146]
+# get_code_units(text, enc="utf-16")
+# ['0061', '00e9', '0192']
+# get_code_units(text, enc="utf-16", decimal=True)
+# [97, 233, 402]
+# get_code_units(text, enc="utf-32")
+# ['00000061', '000000e9', '00000192']
+# get_code_units(text, enc="utf-32", decimal=True)
+# [97, 233, 402]
+
+def display_encoding_data(data, enc='utf-8', mode='codepoints_bytes'):
+    match mode:
+        case 'code_units':
+            char_data = get_code_units(data, enc=enc, structured=True)
+        case 'bytes':
+            # char_data = [char.encode(enc).hex(' ').upper() for char in data]
+            char_data = get_bytes(data=data, enc=enc)
+        case _:
+            char_data = [f'{ord(char):04X}' for char in data]
+    console = _Console()
+    table = _Table(
+        show_header=False,
+        title="Byte representation of string",
+        box=_box.SQUARE,
+        caption=f"String: {text}\nEncoding: {enc}",
+        show_lines=True)
+    for i in range(len(data)):
+        table.add_column('', justify='center', vertical='middle')
+    table.add_row(*data)
+    table.add_row(*[" ".join(b) for b in char_data]) if mode == 'code_units' else table.add_row(*["".join(b) for b in char_data])
+    if mode == 'codepoints_bytes':
+        # byte_data = [char.encode(enc).hex(' ').upper() for char in data]
+        byte_data = get_bytes(data=data, enc=enc)
+        table.add_row(*["".join(b) for b in byte_data])
+    console.print(table)
+    return None
+
+# s = '€abç😊'
+# display_encoding_data(s)
+# display_encoding_data(s, mode='codepoints_bytes')
+# display_encoding_data(s, enc='windows-1252', mode='codepoints_bytes')
+# display_encoding_data(s, enc='latin-1', mode='codepoints_bytes')
+# display_encoding_data(s, mode='codepoints')
+# display_encoding_data(s, mode='code_units')
+# display_encoding_data(s, mode='bytes')
+
+def analyse_bytes(data, encoding = 'utf-8'):
+    if isinstance(data, str):
+        data = data.encode(encoding)
+    _hexdump(data)
