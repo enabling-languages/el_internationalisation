@@ -618,8 +618,6 @@ def get_unicode_chars_for_method(fn, cp: bool = False) -> list[str]:
        return [f'{ord(ch):04X}' for ch in chars]
     return chars
 
-
-
 def chars_to_codepoints(chars, decimal=False, enc='utf-8'):
     enc = enc.lower()
     result = []
@@ -632,14 +630,15 @@ def chars_to_codepoints(chars, decimal=False, enc='utf-8'):
         return [int(r, 16) for r in result]
     return result
 
-
-# chars_to_codepoints(s)
+# import el_internationalisation.data as elid
+# s = 'abç 😊'
+# elid.chars_to_codepoints(s)
 # ['0061', '0062', '00E7', '0020', '1F60A']
-# chars_to_codepoints(s, True)
+# elid.chars_to_codepoints(s, True)
 # [97, 98, 231, 32, 128522]
-# chars_to_codepoints(s, enc='utf-16')
+# elid.chars_to_codepoints(s, enc='utf-16')
 # ['0061', '0062', '00E7', '0020', 'D83D', 'DE0A']
-# chars_to_codepoints(s, True, enc='utf-16')
+# elid.chars_to_codepoints(s, True, enc='utf-16')
 # [97, 98, 231, 32, 55357, 56842]
 
 def homogeneous_type(seq, typ):
@@ -651,13 +650,15 @@ def codepoints_to_chars(codepoints, enc='utf-8'):
         return "".join(chars).encode('utf-16', 'surrogatepass').decode('utf-16')
     return "".join(chars)
 
-# codepoints_to_chars(['0061', '0062', '00E7', '0020', '1F60A'])
+
+# import el_internationalisation.data as elid
+# elid.codepoints_to_chars(['0061', '0062', '00E7', '0020', '1F60A'])
 # 'abç 😊'
-# codepoints_to_chars([97, 98, 231, 32, 128522])
+# elid.codepoints_to_chars([97, 98, 231, 32, 128522])
 # 'abç 😊'
-# codepoints_to_chars(['0061', '0062', '00E7', '0020', 'D83D', 'DE0A'], enc='utf-16')
+# elid.codepoints_to_chars(['0061', '0062', '00E7', '0020', 'D83D', 'DE0A'], enc='utf-16')
 # 'abç 😊'
-# codepoints_to_chars([97, 98, 231, 32, 55357, 56842], enc='utf-16')
+# elid.codepoints_to_chars([97, 98, 231, 32, 55357, 56842], enc='utf-16')
 # 'abç 😊'
 
 def get_bytes(data, enc):
@@ -685,12 +686,13 @@ def display_byte_sequences(data: str, enc: str = 'utf-8') -> None:
     console.print(table)
     return None
 
-# display_byte_sequences(input_chars, 'utf-8')
-# display_byte_sequences(input_chars, 'utf-16-be')
-# display_byte_sequences(input_chars, 'utf-32-be')
-# display_byte_sequences(input_chars, 'iso-8859-1')
-# display_byte_sequences(input_chars, 'iso-8859-19')
-# display_byte_sequences(input_chars, 'windows-1252')
+# import el_internationalisation.data as elid
+# elid.display_byte_sequences(input_chars, 'utf-8')
+# elid.display_byte_sequences(input_chars, 'utf-16-be')
+# elid.display_byte_sequences(input_chars, 'utf-32-be')
+# elid.display_byte_sequences(input_chars, 'iso-8859-1')
+# elid.display_byte_sequences(input_chars, 'iso-8859-19')
+# elid.display_byte_sequences(input_chars, 'windows-1252')
 
 def get_code_units(text: str, enc: str = 'utf-8', decimal: bool = False, structured=False) -> list[str|int|list[str|int]]:
     def is_structured(lst):
@@ -715,18 +717,19 @@ def get_code_units(text: str, enc: str = 'utf-8', decimal: bool = False, structu
             result =  [int(r, 16) for r in result]
     return result
 
+# import el_internationalisation.data as elid
 # text = 'aéƒ'
-# get_code_units(text)
+# elid.get_code_units(text)
 # ['61', 'c3', 'a9', 'c6', '92']
-# get_code_units(text, decimal=True)
+# elid.get_code_units(text, decimal=True)
 # [97, 195, 169, 198, 146]
-# get_code_units(text, enc="utf-16")
+# elid.get_code_units(text, enc="utf-16")
 # ['0061', '00e9', '0192']
-# get_code_units(text, enc="utf-16", decimal=True)
+# elid.get_code_units(text, enc="utf-16", decimal=True)
 # [97, 233, 402]
-# get_code_units(text, enc="utf-32")
+# elid.get_code_units(text, enc="utf-32")
 # ['00000061', '000000e9', '00000192']
-# get_code_units(text, enc="utf-32", decimal=True)
+# elid.get_code_units(text, enc="utf-32", decimal=True)
 # [97, 233, 402]
 
 def display_encoding_data(data, enc='utf-8', mode='codepoints_bytes'):
@@ -756,14 +759,15 @@ def display_encoding_data(data, enc='utf-8', mode='codepoints_bytes'):
     console.print(table)
     return None
 
+# import el_internationalisation.data as elid
 # s = '€abç😊'
-# display_encoding_data(s)
-# display_encoding_data(s, mode='codepoints_bytes')
-# display_encoding_data(s, enc='windows-1252', mode='codepoints_bytes')
-# display_encoding_data(s, enc='latin-1', mode='codepoints_bytes')
-# display_encoding_data(s, mode='codepoints')
-# display_encoding_data(s, mode='code_units')
-# display_encoding_data(s, mode='bytes')
+# elid.display_encoding_data(s)
+# elid.display_encoding_data(s, mode='codepoints_bytes')
+# elid.display_encoding_data(s, enc='windows-1252', mode='codepoints_bytes')
+# elid.display_encoding_data(s, enc='latin-1', mode='codepoints_bytes')
+# elid.display_encoding_data(s, mode='codepoints')
+# elid.display_encoding_data(s, mode='code_units')
+# elid.display_encoding_data(s, mode='bytes')
 
 def analyse_bytes(data, encoding = 'utf-8'):
     if isinstance(data, str):

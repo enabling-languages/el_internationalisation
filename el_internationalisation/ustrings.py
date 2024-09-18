@@ -13,10 +13,14 @@ import icu as _icu
 import regex as _regex
 import unicodedataplus as _unicodedataplus
 from .bidi import bidi_envelope, is_bidi, first_strong, dominant_strong_direction
-from typing import Self as _Self, Generator as _Generator, TypeAlias as _TypeAlias
 from functools import partial as _partial
 from wcwidth import wcswidth as _wcswidth
 from .data import udata
+try:
+  from typing import Self as _Self
+except ImportError:
+  from typing_extensions import Self as _Self
+from typing import Generator as _Generator, TypeAlias as _TypeAlias
 
 Char: _TypeAlias = tuple[str, str, str]
 # type Char = tuple[str, str, str]

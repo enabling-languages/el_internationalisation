@@ -161,3 +161,11 @@ def find_char_index(character:str, ustring:str) -> _Optional[int]:
     if idx == -1:
         return None
     return idx
+
+def expand_range(start_char='', end_char='', pattern=''):
+    if pattern:
+        return list(_icu.UnicodeSet(pattern))
+    start_char = chr(start_char) if isinstance(start_char, int) else start_char
+    end_char = chr(end_char) if isinstance(end_char, int) else end_char
+    sequence = rf'[{start_char}-{end_char}]'
+    return list(_icu.UnicodeSet(sequence))
