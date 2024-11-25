@@ -13,14 +13,17 @@ import icu as _icu
 import regex as _regex
 import unicodedataplus as _unicodedataplus
 from .bidi import bidi_envelope, is_bidi, first_strong, dominant_strong_direction
+from .analyse_char import count_characters, count_ngraphs
 from functools import partial as _partial
 from wcwidth import wcswidth as _wcswidth
-from .data import udata
+# from .data import udata
+from el_data import EthiopicUCDString as _Ethi, udata
 try:
   from typing import Self as _Self
 except ImportError:
   from typing_extensions import Self as _Self
 from typing import Generator as _Generator, TypeAlias as _TypeAlias
+from datetime import datetime
 
 Char: _TypeAlias = tuple[str, str, str]
 # type Char = tuple[str, str, str]
@@ -36,6 +39,9 @@ UD_VERSION = _unicodedataplus.unidata_version
 ICU_VERSION = _icu.ICU_VERSION
 PYICU_VERSION = _icu.VERSION
 ICU_UNICODE_VERSION = _icu.UNICODE_VERSION
+
+def empty_or_none(x):
+    return x is None or x in ['', ' ']
 
 ####################
 # analyse characters
@@ -1462,7 +1468,7 @@ class ustr(_UserString):
                 tokens = tokenise(data, locale=loc)
         counts = _Counter(tokens)
         return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
-    
+
     def tokenise(self, mode="word", locale="default", pattern=None):
         # Frequencies of character, grapheme, or word tokens in uString object
         loc = self._set_locale(locale)
@@ -1593,3 +1599,83 @@ class ustr(_UserString):
 # * compare, 
 # * caseCompareBetween, 
 # * caseCompare
+
+#
+# Ethiopic specific support
+#
+
+def _rbnf(localeID: str, flag: int = _icu.URBNFRuleSetTag.NUMBERING_SYSTEM):
+    if empty_or_none(localeID):
+        raise ValueError('Require locale ID.')
+    locale = _icu.Locale(localeID)
+    f = _icu.RuleBasedNumberFormat(flag, locale)
+    f.setDefaultRuleSet('%ethiopic')
+    return f
+
+def ethiopic_to_integer(number: int):
+    if not isScript(number, 'Ethiopic') or not number.isnumeric():
+        raise ValueError('Require Ethiopic numerals.')
+    localeID = 'und-Ethi-u-nu-ethi'
+    f = _rbnf(localeID = localeID)
+    return f.parse(number).getInt64()
+
+def integer_to_ethiopic(number: str):
+    if not isinstance(number, int):
+        raise ValueError('Require an integer')
+    localeID = 'und-Ethi-u-nu-ethi'
+    f = _rbnf(localeID = localeID)
+    return f.format(number)
+
+def ethiopian_to_datetime(ethiopian_dt, time_zone: str = None) -> datetime.date | datetime.time:
+    pass
+
+def datetime_to_ethiopian(date_time, time_zone: str = None) -> str:
+    pass
+
+def ethiopian_to_gregorian(ethiopian_dt, time_zone: str = None) -> str:
+    pass
+
+def gregorian_to_ethiopian(gregorian_dt, tz: str = None) ->  str:
+    pass
+
+class EthiopicUstr(ustr):
+    def __init__(self, string):
+        self._initial = string
+        self._localeID = None
+        self._locale = None
+        self._nform = None
+        # self._unicodestring = _icu.UnicodeString(string)
+        # self._graphemes = graphemes(string)
+        self.debug = False
+        super().__init__(string)
+
+    def clean_punctuation(self):
+        data = self.data
+        self.data = data.replace('\u1361\u1361', '\u1362').replace('\u1361\u002D', '\u1366')
+        self._set_parameters()
+        return self
+
+    def count_characters(self, localeID = None, use_dict = True)
+        if empty_or_none(localeID):
+            raise ValueError("Require a locale ID.")
+        return count_characters(self.data, localeID=localeID, auxiliary=False, use_dict=use_dict)
+
+    def count_ngrams(self, ngram_length = 2):
+        return count_ngraphs(self.data, ngram_length = ngram_length)
+
+    def from_integer(self, number = None):
+        if not empty_or_none(number):
+            return integer_to_ethiopic(number)
+        return integer_to_ethiopic(self.data)
+
+    def to_first_order(self):
+        self.data = _Ethi(self.data).convert_order('ግዕዝ', as_string=True)
+        self._set_parameters()
+        return self
+
+    def to_integer(self, number = None):
+        if not empty_or_none(number):
+            return ethiopic_to_integer(number)
+        return ethiopic_to_integer(self.data)
+
+

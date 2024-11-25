@@ -1,13 +1,16 @@
 from tabulate import tabulate
-import unicodedataplus
-import el_internationalisation as eli
+import unicodedataplus as _unicodedataplus
+# import el_internationalisation as eli
 from .ustrings import cp
+
+from collections import Counter as _Counter
+import icu as _icu
 
 def analyse_char(char: str, target: str = 'utf-8'):
     if len(char) > 1:
         print("anyalyse_char() only takes a single character as a string argument.")
         return None
-    print(f'\n{char} – {cp(char, prefix=True)} – {unicodedataplus.name(char) if unicodedataplus.name(char) else ""}\n')
+    print(f'\n{char} – {cp(char, prefix=True)} – {_unicodedataplus.name(char) if _unicodedataplus.name(char) else ""}\n')
     table = []
     encodings = [
         'cp437', 'cp500', 'cp737', 'cp775', 'cp850',
@@ -42,7 +45,23 @@ def analyse_char(char: str, target: str = 'utf-8'):
 #     encodings = []
 
 
+def count_characters(text, localeID, auxiliary=False, to_dict=False):
+      c = _Counter(text)
+      uld = _icu.LocaleData(localeID)
+      exemplar_us = uld.getExemplarSet(4, 0)
+      if auxiliary:
+            auxiliary_us = uld.getExemplarSet(4, 1)
+            exemplar_us.addAll(auxiliary_us)
+      punctuation_us = uld.getExemplarSet(0, 3)
+      exemplar_us.addAll(punctuation_us)
+      us_iter = _icu.UnicodeSetIterator(exemplar_us)
+      for i in us_iter:
+            if not c[i]:
+                  c[i] = 0
+      return dict(c) if to_dict else c
 
+def count_ngraphs(text, ngram_length=2):
+      return _Counter(text[idx : idx + ngram_length] for idx in range(len(text) - 1))
 
 
 
