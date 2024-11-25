@@ -1680,7 +1680,7 @@ class EthiopicUstr(ustr):
         if empty_or_none(locale):
             raise ValueError("Require a locale ID.")
         self._locale = locale
-        return count_characters(self.data, localeID=locale, auxiliary=False, use_dict=True)
+        return count_characters(self.data, localeID=locale, auxiliary=False, to_dict=True)
 
     def count_ngrams(self, ngram_length = 2):
         return count_ngraphs(self.data, ngram_length = ngram_length)
