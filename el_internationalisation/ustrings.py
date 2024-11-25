@@ -1655,7 +1655,7 @@ class EthiopicUstr(ustr):
         self._set_parameters()
         return self
 
-    def count_characters(self, localeID = None, use_dict = True)
+    def count_characters(self, localeID = None, use_dict = True):
         if empty_or_none(localeID):
             raise ValueError("Require a locale ID.")
         return count_characters(self.data, localeID=localeID, auxiliary=False, use_dict=use_dict)
