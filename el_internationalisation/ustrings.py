@@ -1239,7 +1239,7 @@ class ustr(_UserString):
         return all(status)
 
     def isscript(self , script:str , common:bool=False) -> bool:
-        return isScript(self.text, script=script, common=common)
+        return isScript(self.data, script=script, common=common)
 
     def isspace_posix(self):
         # Determines if the specified character is a space character or not. 
@@ -1676,10 +1676,11 @@ class EthiopicUstr(ustr):
         self._set_parameters()
         return self
 
-    def count_characters(self, localeID = None, use_dict = True):
-        if empty_or_none(localeID):
+    def count_characters(self, locale = None):
+        if empty_or_none(locale):
             raise ValueError("Require a locale ID.")
-        return count_characters(self.data, localeID=localeID, auxiliary=False, use_dict=use_dict)
+        self._locale = locale
+        return count_characters(self.data, localeID=locale, auxiliary=False, use_dict=True)
 
     def count_ngrams(self, ngram_length = 2):
         return count_ngraphs(self.data, ngram_length = ngram_length)
