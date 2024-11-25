@@ -1647,16 +1647,16 @@ def integer_to_ethiopic(number: str):
     f = _rbnf(localeID = localeID)
     return f.format(number)
 
-def ethiopian_to_datetime(ethiopian_dt, time_zone: str = None) -> datetime.date | datetime.time:
+def ethiopian_to_datetime(ethiopian_dt, time_zone = None):
     pass
 
-def datetime_to_ethiopian(date_time, time_zone: str = None) -> str:
+def datetime_to_ethiopian(date_time, time_zone = None):
     pass
 
-def ethiopian_to_gregorian(ethiopian_dt, time_zone: str = None) -> str:
+def ethiopian_to_gregorian(ethiopian_dt, time_zone = None):
     pass
 
-def gregorian_to_ethiopian(gregorian_dt, tz: str = None) ->  str:
+def gregorian_to_ethiopian(gregorian_dt, tz = None):
     pass
 
 class EthiopicUstr(ustr):
