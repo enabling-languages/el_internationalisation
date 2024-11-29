@@ -14,7 +14,7 @@ import unicodedataplus as _unicodedataplus
 from .bidi import bidi_envelope, is_bidi, first_strong, dominant_strong_direction
 from functools import partial as _partial
 from wcwidth import wcswidth as _wcswidth
-from el_data import EthiopicUCDString as _Ethi, udata
+from el_data import udata, EthiopicUCDString as _Ethi
 try:
   from typing import Self as _Self
 except ImportError:
@@ -1625,7 +1625,22 @@ class ustr(_UserString):
 # Ethiopic specific support
 #
 
-def _rbnf(localeID: str, flag: int = _icu.URBNFRuleSetTag.NUMBERING_SYSTEM):
+def _rbnf(localeID: str, flag: int = _icu.URBNFRuleSetTag.NUMBERING_SYSTEM) -> _icu.RuleBasedNumberFormat:
+    """reate an icu.RuleBasedNumberFormat instance.
+
+    Create an icu.RuleBasedNumberFormat instance for algorithmic numeral systems, 
+    spelling out numbers, and use of ordinal numbers.
+
+    Args:
+        localeID (str): Locale to be used in creating the formatter instance.
+        flag (int, optional): _description_. Defaults to _icu.URBNFRuleSetTag.NUMBERING_SYSTEM.
+
+    Raises:
+        ValueError: Test if locale ID is present.
+
+    Returns:
+        _icu.RuleBasedNumberFormat:  icu.RuleBasedNumberFormat instance
+    """
     if empty_or_none(localeID):
         raise ValueError('Require locale ID.')
     locale = _icu.Locale(localeID)
@@ -1633,14 +1648,36 @@ def _rbnf(localeID: str, flag: int = _icu.URBNFRuleSetTag.NUMBERING_SYSTEM):
     f.setDefaultRuleSet('%ethiopic')
     return f
 
-def ethiopic_to_integer(number: int):
+def ethiopic_to_integer(number: str) -> int:
+    """Convert a number in Ethiopic numerals to an interger.
+
+    Args:
+        number (str): A number in ethiopic numerals: U+
+
+    Raises:
+        ValueError: Test if string to be converted uses Ethiopic Numerals.
+
+    Returns:
+        int: integer equivalent to the Ethiopic numerals.
+    """
     if not isScript(number, 'Ethiopic') or not number.isnumeric():
-        raise ValueError('Require Ethiopic numerals.')
+        raise ValueError('Require a string of Ethiopic numerals.')
     localeID = 'und-Ethi-u-nu-ethi'
     f = _rbnf(localeID = localeID)
     return f.parse(number).getInt64()
 
-def integer_to_ethiopic(number: str):
+def integer_to_ethiopic(number: int) -> str:
+    """Convert an integer to a number in Ethiopic numerals.
+
+    Args:
+        number (int): Integer to be converted.
+
+    Raises:
+        ValueError: Test ifinput is an integer.
+
+    Returns:
+        str: A number composed of Ehiopic numerals.
+    """
     if not isinstance(number, int):
         raise ValueError('Require an integer')
     localeID = 'und-Ethi-u-nu-ethi'
