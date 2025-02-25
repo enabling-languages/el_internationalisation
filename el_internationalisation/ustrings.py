@@ -31,7 +31,7 @@ CharData: _TypeAlias = list[Char]
 #   * add type hinting
 #   * add DocStrings
 
-VERSION = "0.7.5"
+VERSION = "0.7.6"
 UD_VERSION = _unicodedataplus.unidata_version
 ICU_VERSION = _icu.ICU_VERSION
 PYICU_VERSION = _icu.VERSION
@@ -530,11 +530,13 @@ def replace_all(text, pattern_dict):
 
 def is_hangul(s):
     return bool(_regex.search(r'(^\p{Hangul}+$)', s))
+
 def normalise_hangul(s, normalisation_form = "NFC"):
     if is_hangul(s):
         return _unicodedataplus.normalize(normalisation_form, s)
     else:
         return s
+
 def marc_hangul(text):
     return "".join(list(map(normalise_hangul, _regex.split(r'(\P{Hangul})', text))))
 
@@ -673,35 +675,35 @@ tr_tolower_replacements = {'I':'ı', 'İ':'i'}
 tr_toupper_replacements = {'ı':'I', 'i':'İ'}
 
 # To lowercase
-def trLower(text: str) -> str:
-    text = normalise("NFC", text, use_icu=True)
-    return multiple_replace(text, tr_tolower_replacements).lower()
+# def trLower(text: str) -> str:
+#     text = normalise("NFC", text, use_icu=True)
+#     return multiple_replace(text, tr_tolower_replacements).lower()
 
-def trCasefold(text: str) -> str:
-    text = normalise("NFC", text, use_icu=True)
-    return multiple_replace(text, tr_tolower_replacements).casefold()
+# def trCasefold(text: str) -> str:
+#     text = normalise("NFC", text, use_icu=True)
+#     return multiple_replace(text, tr_tolower_replacements).casefold()
 
 # To uppercase
-def trUpper(text:str) -> str:
-    text = normalise("NFC", text, use_icu=True)
-    return multiple_replace(text, tr_toupper_replacements).upper()
+# def trUpper(text:str) -> str:
+#     text = normalise("NFC", text, use_icu=True)
+#     return multiple_replace(text, tr_toupper_replacements).upper()
 
 # To titlecase
-def trTitle(text: str) -> str:
-    text = normalise("NFC", text, use_icu=True)
-    words: list[str] = text.split()
-    tr_text: list[str] = []
-    for word in words:
-        tr_text.append(trUpper(word[0]) + trLower(word[1:]))
-    return " ".join(tr_text)
+# def trTitle(text: str) -> str:
+#     text = normalise("NFC", text, use_icu=True)
+#     words: list[str] = text.split()
+#     tr_text: list[str] = []
+#     for word in words:
+#         tr_text.append(trUpper(word[0]) + trLower(word[1:]))
+#     return " ".join(tr_text)
 
 # To Sentence casing
-def trSentence(text: str) -> str:
-    text = normalise("NFC", text, use_icu=True)
-    words: list[str] = text.split(' ', 1)
-    words[0] = trUpper(words[0])
-    words[1] = trLower(words[1])
-    return " ".join(words)
+# def trSentence(text: str) -> str:
+#     text = normalise("NFC", text, use_icu=True)
+#     words: list[str] = text.split(' ', 1)
+#     words[0] = trUpper(words[0])
+#     words[1] = trLower(words[1])
+#     return " ".join(words)
 
 ####################
 #
@@ -710,32 +712,35 @@ def trSentence(text: str) -> str:
 #
 ####################
 
-def toLower(text: str, use_icu: bool = True, loc=_icu.Locale.getRoot()) -> str:
+def set_locale(localeID: str) -> _icu.Locale:
+    return _icu.Locale(localeID)
+
+def toLower(text: str, locale=_icu.Locale.getRoot(), use_icu: bool = True) -> str:
     if not use_icu:
         return text.lower()
     # return str(_icu.UnicodeString(text).toLower(loc))
-    return _icu.CaseMap.toLower(loc, text)
+    return _icu.CaseMap.toLower(locale, text)
 
-def toUpper(text: str, use_icu: bool = True, loc=_icu.Locale.getRoot()) -> str:
+def toUpper(text: str, locale=_icu.Locale.getRoot(), use_icu: bool = True) -> str:
     if not use_icu:
         return text.upper()
     # return str(_icu.UnicodeString(text).toUpper(loc))
-    return _icu.CaseMap.toUpper(loc, text)
+    return _icu.CaseMap.toUpper(locale, text)
 
-def toTitle(text: str, use_icu: bool = True, loc = _icu.Locale.getRoot()) -> str:
+def toTitle(text: str, locale = _icu.Locale.getRoot(), use_icu: bool = True) -> str:
     if not use_icu:
         return text.title()
     # return str(_icu.UnicodeString(text).toTitle(loc))
-    return _icu.CaseMap.toTitle(loc, 0, text)
+    return _icu.CaseMap.toTitle(locale, 0, text)
 
-def toSentence(text: str,  use_icu: bool = True, loc = _icu.Locale.getRoot()) -> str:
+def toSentence(text: str, locale = _icu.Locale.getRoot(),  use_icu: bool = True) -> str:
     if not use_icu:
         return text.capitalize()
-    return _icu.CaseMap.toTitle(loc, 64, text)
+    return _icu.CaseMap.toTitle(locale, 64, text)
 
 capitalise = toSentence
 
-TURKIC = ["tr", "az"]
+# TURKIC = ["tr", "az"]
 
 #
 # TODO:
@@ -839,6 +844,27 @@ def tokenise(text, locale=_icu.Locale.getRoot(), mode="word"):
 
 tokenize = tokenise
 
+def set_bi(locale: _icu.Locale, mode: str = "word") -> _icu.BreakIterator:
+    """Set break iterator based on locale and type (mode).
+
+    Args:
+        locale (_icu.Locale): ICU locale to use for tokenisation.
+        mode (str, optional): Tokenisation mode. Defaults to "word". Supports character, grapheme, sentence and word.
+
+    Returns:
+        _icu.BreakIterator: ICU break iterator.
+    """
+    match mode.lower():
+        case "character":
+            bi = _icu.BreakIterator.createCharacterInstance(locale)
+        case "grapheme":
+            bi = _icu.BreakIterator.createCharacterInstance(locale)
+        case "sentence":
+            bi = _icu.BreakIterator.createSentenceInstance(locale)
+        case _:
+            bi = _icu.BreakIterator.createWordInstance(locale)
+    return bi
+
 def tokenise_bi(text, brkiter):
     """Tokenise a string using specified break iterator.
 
@@ -888,7 +914,6 @@ def generate_tokens(text: str, brkiter: _icu.RuleBasedBreakIterator | None = Non
     for j in brkiter:
         yield text[i:j]
         i = j
-
 
 def get_generated_tokens(text:str, bi: _icu.BreakIterator | None = None) -> list[str]:
     """Create a list of tokens from a generator
@@ -1032,7 +1057,7 @@ class ustr(_UserString):
         #     self.data = f"{str(_icu.UnicodeString(data[0]).toTitle(loc))}"
         # else:
         #     self.data = f"{str(_icu.UnicodeString(data[0]).toTitle(loc))} {str(_icu.UnicodeString(data[1]).toLower(loc))}"
-        self.data = toSentence(self.data, use_icu = True, loc = loc)
+        self.data = toSentence(self.data, loc = loc, use_icu = True)
         self._set_parameters()
         return self
 
@@ -1042,7 +1067,7 @@ class ustr(_UserString):
         # return str(_icu.UnicodeString(self.data).foldCase())
         # option = 1 if turkic else 0
         # self.data = str(_icu.UnicodeString(self.data).foldCase(option))
-        self.data = toCasefold(self.data, use_icu = True, turkic = turkic)
+        self.data = toCasefold(self.data, turkic = turkic, use_icu = True)
         self._set_parameters()
         return self
 
@@ -1051,7 +1076,7 @@ class ustr(_UserString):
 
     # Canonical case-insensitive
     def cci(self, turkic=False):
-        self.data = toNFD(toCasefold(toNFD(self.data, use_icu=True), use_icu=True, turkic = turkic), use_icu=True)
+        self.data = toNFD(toCasefold(toNFD(self.data, use_icu=True), turkic = turkic, use_icu=True), use_icu=True)
         self._set_parameters()
         return self
 
@@ -1322,7 +1347,7 @@ class ustr(_UserString):
         # return str(_icu.UnicodeString(self.data).toLower(_icu.Locale(locale))) if locale else str(_icu.UnicodeString(self.data).toLower())
         loc = self._set_locale(locale)
         # self.data = str(_icu.UnicodeString(self.data).toLower(loc))
-        self.data = toLower(self.data, True, loc)
+        self.data = toLower(self.data, loc, True)
         self._set_parameters()
         return self
 
@@ -1471,7 +1496,7 @@ class ustr(_UserString):
     def title(self, locale = "default"):
         loc = self._set_locale(locale)
         # self.data = str(_icu.UnicodeString(self.data).toTitle(loc))
-        self.data = toTitle(self.data, True, loc)
+        self.data = toTitle(self.data, loc, True)
         self._set_parameters()
         return self
 
@@ -1561,7 +1586,7 @@ class ustr(_UserString):
         """
         loc = self._set_locale(locale)
         # self.data = str(_icu.UnicodeString(self.data).toUpper(loc))
-        self.data = toUpper(self.data, True, loc)
+        self.data = toUpper(self.data, loc, True)
         self._set_parameters()
         return self
 
