@@ -1050,8 +1050,13 @@ class ustr(_UserString):
         return results
         # https://stackoverflow.com/questions/3308102/how-to-extract-the-n-th-elements-from-a-list-of-tuples
 
-    def capitalise(self, locale = "default"):
-        loc = self._set_locale(locale)
+    def capitalise(self, locale = None):
+        if locale is not None:
+            loc = self._set_locale(locale)
+        elif self._locale is not None:
+            loc = self._set_locale(self._locale)
+        else:
+            loc = self._set_locale('default')
         # data = self.data.split(maxsplit=1)
         # if len(data) == 1:
         #     self.data = f"{str(_icu.UnicodeString(data[0]).toTitle(loc))}"
@@ -1289,7 +1294,8 @@ class ustr(_UserString):
 
     def isupper_posix(self):
         # Determines whether the specified code point has the general category "Lu" (uppercase letter).
-        # This misses some characters that are also uppercase but have a different general category value. In order # to include those, use UCHAR_UPPERCASE.
+        # This misses some characters that are also uppercase but have a different general category value. In order 
+        # to include those, use UCHAR_UPPERCASE.
         # This is a C/POSIX migration function.
         status = []
         for char in [char for char in self.data]:
@@ -1343,9 +1349,14 @@ class ustr(_UserString):
         data = self.data
         return data.ljust(self._adjusted_width(width, data), fillchar)
 
-    def lower(self, locale = "default"):
+    def lower(self, locale = None):
+        if locale is not None:
+            loc = self._set_locale(locale)
+        elif self._locale is not None:
+            loc = self._set_locale(self._locale)
+        else:
+            loc = self._set_locale('default')
         # return str(_icu.UnicodeString(self.data).toLower(_icu.Locale(locale))) if locale else str(_icu.UnicodeString(self.data).toLower())
-        loc = self._set_locale(locale)
         # self.data = str(_icu.UnicodeString(self.data).toLower(loc))
         self.data = toLower(self.data, loc, True)
         self._set_parameters()
@@ -1493,8 +1504,13 @@ class ustr(_UserString):
 
     # TODO: swapcase
 
-    def title(self, locale = "default"):
-        loc = self._set_locale(locale)
+    def title(self, locale = None):
+        if locale is not None:
+            loc = self._set_locale(locale)
+        elif self._locale is not None:
+            loc = self._set_locale(self._locale)
+        else:
+            loc = self._set_locale('default')
         # self.data = str(_icu.UnicodeString(self.data).toTitle(loc))
         self.data = toTitle(self.data, loc, True)
         self._set_parameters()
@@ -1575,16 +1591,21 @@ class ustr(_UserString):
 
     UnicodeString = unicodestring
 
-    def upper(self, locale: str = "default") -> _Self:
+    def upper(self, locale: str = None) -> _Self:
         """Return a copy of the string with all the cased characters converted to uppercase.
 
         Args:
-            locale (str, optional): Locale identifier. Defaults to "default".
+            locale (str, optional): Locale identifier. Defaults to None.
 
         Returns:
             Self: Updated uString object, with data uppercased.
         """
-        loc = self._set_locale(locale)
+        if locale is not None:
+            loc = self._set_locale(locale)
+        elif self._locale is not None:
+            loc = self._set_locale(self._locale)
+        else:
+            loc = self._set_locale('default')
         # self.data = str(_icu.UnicodeString(self.data).toUpper(loc))
         self.data = toUpper(self.data, loc, True)
         self._set_parameters()
@@ -1651,7 +1672,7 @@ class ustr(_UserString):
 #
 
 def _rbnf(localeID: str, flag: int = _icu.URBNFRuleSetTag.NUMBERING_SYSTEM) -> _icu.RuleBasedNumberFormat:
-    """reate an icu.RuleBasedNumberFormat instance.
+    """Create an icu.RuleBasedNumberFormat instance.
 
     Create an icu.RuleBasedNumberFormat instance for algorithmic numeral systems, 
     spelling out numbers, and use of ordinal numbers.
