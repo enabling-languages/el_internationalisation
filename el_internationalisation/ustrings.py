@@ -1006,8 +1006,8 @@ class ustr(_UserString):
         match locale:
             case "root":
                 return _icu.Locale.getRoot()
-            case "und":
-                return _icu.Locale.getRoot()
+            # case "und":
+            #     return _icu.Locale.getRoot()
             case "default":
                 return _icu.Locale.getDefault()
             case _  :
