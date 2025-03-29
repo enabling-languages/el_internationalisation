@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='el_internationalisation',
-    version='0.7.8',
+    version='0.7.9',
     description='Helper functions to improve Python internationalisation',
     url='https://github.com/enabling-languages/el_internationalisation',
     author='Andrew Cunningham',

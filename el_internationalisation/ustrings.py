@@ -20,7 +20,7 @@ try:
 except ImportError:
   from typing_extensions import Self as _Self
 from typing import Generator as _Generator, TypeAlias as _TypeAlias
-from datetime import datetime
+from datetime import date, datetime, time
 
 Char: _TypeAlias = tuple[str, str, str]
 # type Char = tuple[str, str, str]
@@ -814,6 +814,8 @@ def remove_digits(text):
 ####################
 
 def get_boundaries(text, brkiter):
+    if not isinstance(text, _icu.UnicodeString):
+        text = _icu.UnicodeString(text)
     brkiter.setText(text)
     boundaries = [*brkiter]
     boundaries.insert(0, 0)
@@ -830,6 +832,8 @@ def tokenise(text, locale=_icu.Locale.getRoot(), mode="word"):
     Returns:
         _list_: list of tokens in string.
     """
+    if not isinstance(text, _icu.UnicodeString):
+        text = _icu.UnicodeString(text)
     match mode.lower():
         case "character":
             return list(text)
@@ -875,6 +879,8 @@ def tokenise_bi(text, brkiter):
     Returns:
         list: Tokens in string.
     """
+    if not isinstance(text, _icu.UnicodeString):
+        text = _icu.UnicodeString(text)
     boundary_indices = get_boundaries(text, brkiter)
     return [text[boundary_indices[i]:boundary_indices[i+1]] for i in range(len(boundary_indices)-1)]
 
@@ -887,7 +893,7 @@ tokenize_bi = tokenise_bi
 #     or
 #         list(gen_tokens(z, iter))
 
-def generate_tokens(text: str, brkiter: _icu.RuleBasedBreakIterator | None = None) -> _Generator[str, None, None]:
+def generate_tokens(text: str | _icu.UnicodeString, brkiter: _icu.RuleBasedBreakIterator | None = None) -> _Generator[str, None, None]:
     """Token generator: tokenise a string using specified break iterator
 
         Token generator
@@ -907,8 +913,10 @@ def generate_tokens(text: str, brkiter: _icu.RuleBasedBreakIterator | None = Non
     Yields:
         Iterator[str]: A generator for tokens.
     """
-    if not brkiter:
+    if brkiter is None:
         brkiter = _icu.BreakIterator.createWordInstance(_icu.Locale.getRoot())
+    if not isinstance(text, _icu.UnicodeString):
+        text = _icu.UnicodeString(text)
     brkiter.setText(text)
     i = brkiter.first()
     for j in brkiter:
@@ -1085,7 +1093,7 @@ class ustr(_UserString):
         self._set_parameters()
         return self
 
-    def center(self, width: int, fillchar:str = " ") -> str:
+    def center(self, inline_size: int, fillchar:str = " ") -> str:
         data = self.data
         return data.center(self._adjusted_width(width, data), fillchar)
 
@@ -1345,7 +1353,7 @@ class ustr(_UserString):
 
     # join - from UserString
 
-    def ljust(self, width: int, fillchar:str = " ") -> str:
+    def ljust(self, inline_size: int, fillchar:str = " ") -> str:
         data = self.data
         return data.ljust(self._adjusted_width(width, data), fillchar)
 
@@ -1441,7 +1449,7 @@ class ustr(_UserString):
     # rfind - from UserString
     # rindex - from UserString
 
-    def rjust(self, width: int, fillchar:str = " ") -> str:
+    def rjust(self, inline_size: int, fillchar:str = " ") -> str:
         data = self.data
         return data.rjust(self._adjusted_width(width, data), fillchar)
 
@@ -1745,7 +1753,7 @@ def gregorian_to_ethiopian(gregorian_dt, tz = None):
 class EthiopicUstr(ustr):
     def __init__(self, string):
         self._initial = string
-        self._localeID = None
+        # self._localeID = None
         self._locale = None
         self._nform = None
         # self._unicodestring = _icu.UnicodeString(string)
@@ -1753,16 +1761,21 @@ class EthiopicUstr(ustr):
         self.debug = False
         super().__init__(string)
 
-    def clean_punctuation(self):
+    def clean(self):
         data = self.data
-        self.data = data.replace('\u1361\u1361', '\u1362').replace('\u1361\u002D', '\u1366')
-        self._set_parameters()
+        data = data.strip()
+        data = _regex.sub(r'\s+', ' ', data.strip())
+        self.data = data.replace('\u1361\u1361', '\u1362').replace('\u1361\u002D', '\u1366').replace('\u1362\u1361', '\u1362')
+        # self._set_parameters()
         return self
 
     def count_characters(self, locale = None):
-        if empty_or_none(locale):
+        if locale is not None:
+            self._locale = locale
+        elif self._locale is not None:
+            locale = self._locale
+        elif empty_or_none(locale):
             raise ValueError("Require a locale ID.")
-        self._locale = locale
         return count_characters(self.data, localeID=locale, auxiliary=False, to_dict=True)
 
     def count_ngrams(self, ngram_length = 2):
@@ -1775,7 +1788,7 @@ class EthiopicUstr(ustr):
 
     def to_first_order(self):
         self.data = _Ethi(self.data).convert_order('ግዕዝ', as_string=True)
-        self._set_parameters()
+        # self._set_parameters()
         return self
 
     def to_integer(self, number = None):
@@ -1783,4 +1796,26 @@ class EthiopicUstr(ustr):
             return ethiopic_to_integer(number)
         return ethiopic_to_integer(self.data)
 
+class GreekUstr(ustr):
+    def __init__(self, string):
+        self._initial = string
+        # self._localeID = 'el'
+        self._locale = 'el'
+        self._nform = None
+        # self._unicodestring = _icu.UnicodeString(string)
+        # self._graphemes = graphemes(string)
+        self.debug = False
+        super().__init__(string)
 
+    def clean(self: _Self, remove_punctuation: bool = False) -> _Self:
+        data = self.data
+        data = _regex.sub(r'\s+', ' ', data.strip())
+
+        # Greek specific cleaning
+
+        if remove_punctuation:
+            data = _regex.sub(r'[\p{P}]', '', data)
+        # self.data = data.replace('\u1361\u1361', '\u1362').replace('\u1361\u002D', '\u1366')
+        self.data = data
+        # self._set_parameters()
+        return self
