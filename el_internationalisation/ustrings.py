@@ -1,7 +1,7 @@
 ##########################################################
 # el_internationalisation.ustrings
 #
-#   © Enabling Languages 2023-2024
+#   © Enabling Languages 2023-2025
 #   Released under the MIT License.
 #
 ##########################################################
@@ -36,6 +36,8 @@ UD_VERSION = _unicodedataplus.unidata_version
 ICU_VERSION = _icu.ICU_VERSION
 PYICU_VERSION = _icu.VERSION
 ICU_UNICODE_VERSION = _icu.UNICODE_VERSION
+
+ROOT_LOCALE = _icu.Locale.getRoot()
 
 ####################
 #
@@ -228,7 +230,7 @@ printl = print_list
 # text = "ꗏ ꕘꕞꘋ ꔳꕩ"
 # printl(cpname(text))
 
-def isScript(text:str , script:str , common:bool=False) -> bool:
+def is_script(text:str , script:str , common:bool=False) -> bool:
     """Test if characters in string belong to specified script.
 
     Args:
@@ -715,25 +717,25 @@ tr_toupper_replacements = {'ı':'I', 'i':'İ'}
 def set_locale(localeID: str) -> _icu.Locale:
     return _icu.Locale(localeID)
 
-def toLower(text: str, locale=_icu.Locale.getRoot(), use_icu: bool = True) -> str:
+def toLower(text: str, local = ROOT_LOCALE, use_icu: bool = True) -> str:
     if not use_icu:
         return text.lower()
     # return str(_icu.UnicodeString(text).toLower(loc))
     return _icu.CaseMap.toLower(locale, text)
 
-def toUpper(text: str, locale=_icu.Locale.getRoot(), use_icu: bool = True) -> str:
+def toUpper(text: str, locale = ROOT_LOCALE, use_icu: bool = True) -> str:
     if not use_icu:
         return text.upper()
     # return str(_icu.UnicodeString(text).toUpper(loc))
     return _icu.CaseMap.toUpper(locale, text)
 
-def toTitle(text: str, locale = _icu.Locale.getRoot(), use_icu: bool = True) -> str:
+def toTitle(text: str, locale = ROOT_LOCALE, use_icu: bool = True) -> str:
     if not use_icu:
         return text.title()
     # return str(_icu.UnicodeString(text).toTitle(loc))
     return _icu.CaseMap.toTitle(locale, 0, text)
 
-def toSentence(text: str, locale = _icu.Locale.getRoot(),  use_icu: bool = True) -> str:
+def toSentence(text: str, locale = ROOT_LOCALE,  use_icu: bool = True) -> str:
     if not use_icu:
         return text.capitalize()
     return _icu.CaseMap.toTitle(locale, 64, text)
@@ -758,7 +760,7 @@ capitalise = toSentence
 #     elif engine == "_icu":
 #         if lang not in list(_icu.Locale.getAvailableLocales().keys()):
 #             lang = "und"
-#         loc = _icu.Locale.getRoot() if lang == "und" else _icu.Locale.forLanguageTag(lang)
+#         loc = ROOT_LOCALE if lang == "und" else _icu.Locale.forLanguageTag(lang)
 #         result = str(_icu.UnicodeString(s[0]).toUpper(loc)) + str(_icu.UnicodeString(s[1:]).toLower(loc))
 #     else:
 #         result = s
@@ -774,7 +776,7 @@ capitalise = toSentence
 #         return s.capitalize()
 #     if lang_subtag not in list(_icu.Locale.getAvailableLocales().keys()):
 #         lang = "und"
-#     loc = _icu.Locale.getRoot() if lang == "und" else _icu.Locale.forLanguageTag(lang)
+#     loc = ROOT_LOCALE if lang == "und" else _icu.Locale.forLanguageTag(lang)
 #     result = str(_icu.UnicodeString(s[0]).toUpper(loc)) + str(_icu.UnicodeString(s[1:]).toLower(loc))
 #     return result
 
@@ -813,61 +815,83 @@ def remove_digits(text):
 #
 ####################
 
+def get_brkiter(bi_mode = 'grapheme', locale = ROOT_LOCALE):
+    """Create break iterator instance based on locale and type (bi_mode).
+
+    Args:
+        locale (_icu.Locale): ICU locale to use for tokenisation. Deafaults to ROOT_LOCALE
+        bi_mode (str, optional): Tokenisation mode. Defaults to "grapheme". Supports character, grapheme, sentence and word.
+
+    Returns:
+        _icu.BreakIterator: ICU break iterator.
+    """
+    match bi_mode.lower():
+        # character generator?
+        case "sentence":
+            return _icu.BreakIterator.createSentenceInstance(locale)
+        case "line":
+            return _icu.BreakIterator.createLineInstance(locale)
+        case "word":
+            return _icu.BreakIterator.createWordInstance(locale)
+        case "title":
+            return _icu.BreakIterator.createTitleInstance(locale)
+        case _:
+            return _icu.BreakIterator.createCharacterInstance(locale)
+        
+set_bi = get_brkiter
+
 def get_boundaries(text, brkiter):
-    if not isinstance(text, _icu.UnicodeString):
-        text = _icu.UnicodeString(text)
+    # if not isinstance(text, _icu.UnicodeString):
+    #     text = _icu.UnicodeString(text)
     brkiter.setText(text)
     boundaries = [*brkiter]
     boundaries.insert(0, 0)
     return boundaries
 
-def tokenise(text, locale=_icu.Locale.getRoot(), mode="word"):
+def tokenise(text, locale = ROOT_LOCALE, bi_mode = "word"):
     """Tokenise a string based on locale: character, grapheme, word and sentense tokenisation supported.
 
     Args:
         text (_str_): string to tokenise.
-        locale (__icu.Locale_, optional): _icu.Locale to use for tokenisation. Defaults to _icu.Locale.getRoot().
-        mode (str, optional): Character, grapheme, word or sentense tokenisation to perform. Defaults to "word".
+        locale (__icu.Locale_, optional): _icu.Locale to use for tokenisation. Defaults to ROOT_LOCALE.
+        mode (str, optional): Character, grapheme, syllable, word or sentense tokenisation to perform. Defaults to "word".
 
     Returns:
         _list_: list of tokens in string.
     """
-    if not isinstance(text, _icu.UnicodeString):
-        text = _icu.UnicodeString(text)
-    match mode.lower():
+    # if not isinstance(text, _icu.UnicodeString):
+    #     text = _icu.UnicodeString(text)
+    match bi_mode.lower():
         case "character":
             return list(text)
         case "grapheme":
             bi = _icu.BreakIterator.createCharacterInstance(locale)
+        case "syllable":
+            language = locale.getLanguage()
+            syllable_rules = {
+                "kh": "kh.brk",
+                "lo": "lo.brk",
+                "my": "my.brk"
+            }
+            if language in ['kh', 'lo', 'my']:
+                with open(syllable_rules[language], 'rb') as fi:
+                    rules = fi.read()
+                bi = _icu.RuleBasedBreakIterator(rules)
+            else:
+                bi = _icu.BreakIterator.createCharacterInstance(locale)
         case "sentence":
             bi = _icu.BreakIterator.createSentenceInstance(locale)
         case _:
             bi = _icu.BreakIterator.createWordInstance(locale)
+    bi = get_brkiter(bi_mode, locale)
     boundary_indices = get_boundaries(text, bi)
-    return [text[boundary_indices[i]:boundary_indices[i+1]] for i in range(len(boundary_indices)-1)]
+    # return [str(text[boundary_indices[i]:boundary_indices[i+1]]) for i in range(len(boundary_indices)-1)]
+    tokens = [text[boundary_indices[i]:boundary_indices[i+1]] for i in range(len(boundary_indices)-1)]
+    if isinstance(text, _icu.UnicodeString):
+        return [str(g) for g in tokens]
+    return tokens
 
 tokenize = tokenise
-
-def set_bi(locale: _icu.Locale, mode: str = "word") -> _icu.BreakIterator:
-    """Set break iterator based on locale and type (mode).
-
-    Args:
-        locale (_icu.Locale): ICU locale to use for tokenisation.
-        mode (str, optional): Tokenisation mode. Defaults to "word". Supports character, grapheme, sentence and word.
-
-    Returns:
-        _icu.BreakIterator: ICU break iterator.
-    """
-    match mode.lower():
-        case "character":
-            bi = _icu.BreakIterator.createCharacterInstance(locale)
-        case "grapheme":
-            bi = _icu.BreakIterator.createCharacterInstance(locale)
-        case "sentence":
-            bi = _icu.BreakIterator.createSentenceInstance(locale)
-        case _:
-            bi = _icu.BreakIterator.createWordInstance(locale)
-    return bi
 
 def tokenise_bi(text, brkiter):
     """Tokenise a string using specified break iterator.
@@ -879,10 +903,13 @@ def tokenise_bi(text, brkiter):
     Returns:
         list: Tokens in string.
     """
-    if not isinstance(text, _icu.UnicodeString):
-        text = _icu.UnicodeString(text)
+    # if not isinstance(text, _icu.UnicodeString):
+    #     text = _icu.UnicodeString(text)
     boundary_indices = get_boundaries(text, brkiter)
-    return [text[boundary_indices[i]:boundary_indices[i+1]] for i in range(len(boundary_indices)-1)]
+    tokens = [text[boundary_indices[i]:boundary_indices[i+1]] for i in range(len(boundary_indices)-1)]
+    if isinstance(text, icu.UnicodeString):
+        return [str(g) for g in tokens]
+    return tokens
 
 tokenize_bi = tokenise_bi
 
@@ -914,13 +941,15 @@ def generate_tokens(text: str | _icu.UnicodeString, brkiter: _icu.RuleBasedBreak
         Iterator[str]: A generator for tokens.
     """
     if brkiter is None:
-        brkiter = _icu.BreakIterator.createWordInstance(_icu.Locale.getRoot())
+        brkiter = _icu.BreakIterator.createCharacterInstance(ROOT_LOCALE)
     if not isinstance(text, _icu.UnicodeString):
         text = _icu.UnicodeString(text)
     brkiter.setText(text)
     i = brkiter.first()
     for j in brkiter:
-        yield text[i:j]
+        start = i
+        end = j - 1 
+        yield (str(text[i:j]), start, end)
         i = j
 
 def get_generated_tokens(text:str, bi: _icu.BreakIterator | None = None) -> list[str]:
@@ -950,7 +979,7 @@ graphemes.__doc__ = """Grapheme tokenisation of string.
 
     Args:
         text (_str_): string to be tokenised
-        locale (__icu.Locale_, optional): ICU locale to use in tokenisation. Defaults to _icu.Locale.getRoot().
+        locale (__icu.Locale_, optional): ICU locale to use in tokenisation. Defaults to ROOT_LOCALE.
 
     Returns:
         _list_: list of graphemes
@@ -968,7 +997,7 @@ class ustr(_UserString):
         self._initial = string
         self._locale = None
         self._nform = None
-        # self._unicodestring = _icu.UnicodeString(string)
+        self._unicodestring = _icu.UnicodeString(string)
         # self._graphemes = graphemes(string)
         self.debug = False
         super().__init__(string)
@@ -1013,9 +1042,9 @@ class ustr(_UserString):
             self._locale = locale = "default"
         match locale:
             case "root":
-                return _icu.Locale.getRoot()
+                return ROOT_LOCALE
             # case "und":
-            #     return _icu.Locale.getRoot()
+            #     return ROOT_LOCALE
             case "default":
                 return _icu.Locale.getDefault()
             case _  :
@@ -1024,7 +1053,7 @@ class ustr(_UserString):
     def _set_parameters(self, new_data=None):
         if new_data:
             self.data = new_data
-        # self._unicodestring = _icu.UnicodeString(self.data)
+        self._unicodestring = _icu.UnicodeString(self.data)
         # self._graphemes = _regex.findall(r'\X', self.data)
         # self._graphemes = graphemes(self.data)
 
@@ -1095,7 +1124,7 @@ class ustr(_UserString):
 
     def center(self, inline_size: int, fillchar:str = " ") -> str:
         data = self.data
-        return data.center(self._adjusted_width(width, data), fillchar)
+        return data.center(self._adjusted_width(inline_size, data), fillchar)
 
     centre = center
 
@@ -1277,7 +1306,7 @@ class ustr(_UserString):
         return all(status)
 
     def isscript(self , script:str , common:bool=False) -> bool:
-        return isScript(self.data, script=script, common=common)
+        return is_script(self.data, script=script, common=common)
 
     def isspace_posix(self):
         # Determines if the specified character is a space character or not. 
@@ -1310,36 +1339,62 @@ class ustr(_UserString):
             status.append(_icu.Char.isupper(char))
         return all(status)
 
-    def isupper(self):
+    def isupper(self: _Self) -> bool:
         # Check if a code point has the Uppercase Unicode property.
-        # Same as u_hasBinaryProperty(c, UCHAR_UPPERCASE). This is different from u_isupper!
+        # Same as u_hasBinaryProperty(c, UCHAR_UPPERCASE). This is different from isupper_posix!
+        """Check if a code point has the Uppercase Unicode property.
+
+        Same as icu4c u_hasBinaryProperty(c, UCHAR_UPPERCASE). This is different from isupper!
+
+        Args:
+            self (_Self): ustr instance.
+
+        Returns:
+            bool: True if all characters in the string have the Uppercase Unicode property, False otherwise.
+        """        
         status = []
         for char in [char for char in self.data]:
             status.append(_icu.Char.isUUppercase(char))
         return all(status)
 
-    def iswhitespace(self):
-        # Determines if the specified code point is a whitespace character according to Java/ICU. 
-        # A character is considered to be a Java whitespace character if and only if it satisfies one of the following criteria:
-        #     * It is a Unicode Separator character (categories "Z" = "Zs" or "Zl" or "Zp"), but is not also a non-breaking space (U+00A0 NBSP or U+2007 Figure Space or U+202F Narrow NBSP).
-        #     * It is U+0009 HORIZONTAL TABULATION.
-        #     * It is U+000A LINE FEED.
-        #     * It is U+000B VERTICAL TABULATION.
-        #     * It is U+000C FORM FEED.
-        #     * It is U+000D CARRIAGE RETURN.
-        #     * It is U+001C FILE SEPARATOR.
-        #     * It is U+001D GROUP SEPARATOR.
-        #     * It is U+001E RECORD SEPARATOR.
-        #     * It is U+001F UNIT SEPARATOR.
+    def iswhitespace(self: _Self) -> bool: 
+        """Determines if the specified code point is a whitespace character according to Java/ICU.
+
+        A character is considered to be a Java whitespace character if and only if it satisfies one of the following criteria:
+            * It is a Unicode Separator character (categories "Z" = "Zs" or "Zl" or "Zp"), but is not also a non-breaking space (U+00A0 NBSP or U+2007 Figure Space or U+202F Narrow NBSP).
+            * It is U+0009 HORIZONTAL TABULATION.
+            * It is U+000A LINE FEED.
+            * It is U+000B VERTICAL TABULATION.
+            * It is U+000C FORM FEED.
+            * It is U+000D CARRIAGE RETURN.
+            * It is U+001C FILE SEPARATOR.
+            * It is U+001D GROUP SEPARATOR.
+            * It is U+001E RECORD SEPARATOR.
+            * It is U+001F UNIT SEPARATOR.
+
+        Args:
+            self (_Self): ustr instance.
+
+        Returns:
+            bool: True if all characters in the string are Java whitespace characters, False otherwise.
+        """            
         status = []
         for char in [char for char in self.data]:
             status.append(_icu.Char.isWhitespace(char))
         return all(status)
 
-    def iswhitespaceU(self):
-        # Check if a code point has the White_Space Unicode property.
-        # Same as u_hasBinaryProperty(c, UCHAR_WHITE_SPACE).
-        # This is different from both u_isspace and u_isWhitespace!
+    def iswhitespaceU(self: _Self) -> bool:
+        """Check if a code point has the White_Space Unicode property.
+
+        Same as u_hasBinaryProperty(c, UCHAR_WHITE_SPACE).
+        This is different from both isspace and iswhitespace!
+
+        Args:
+            self (_Self): ustr instance.
+
+        Returns:
+            bool: True if all characters in the string have the White_Space Unicode property, False otherwise.
+        """        
         status = []
         for char in [char for char in self.data]:
             status.append(_icu.Char.isUWhiteSpace(char))
@@ -1540,11 +1595,11 @@ class ustr(_UserString):
         return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
 
     def tokenise(self, mode="word", locale="default", pattern=None):
-        # Frequencies of character, grapheme, or word tokens in uString object
+        # Character, grapheme, or word tokens in an ustr object
         loc = self._set_locale(locale)
         tokens = []
         data = self.data
-        match mode:
+        match mode.lower():
             case "character":
                 tokens = [c for c in data]
             case "grapheme":
@@ -1714,7 +1769,7 @@ def ethiopic_to_integer(number: str) -> int:
     Returns:
         int: integer equivalent to the Ethiopic numerals.
     """
-    if not isScript(number, 'Ethiopic') or not number.isnumeric():
+    if not is_script(number, 'Ethiopic') or not number.isnumeric():
         raise ValueError('Require a string of Ethiopic numerals.')
     localeID = 'und-Ethi-u-nu-ethi'
     f = _rbnf(localeID = localeID)
@@ -1761,14 +1816,37 @@ class EthiopicUstr(ustr):
         self.debug = False
         super().__init__(string)
 
-    def clean(self):
+    def clean(self, modes=['punctuation', 'whitespace']):
+        """Clean Ethiopic string.
+        Args: 
+            modes (list[str], optional): Data cleaning. Defaults to ['punctuation', 'whitespace'].
+        
+        Returns:
+            self: Updated uString object, with data cleaned.
+        """
         data = self.data
         data = data.strip()
-        data = _regex.sub(r'\s+', ' ', data.strip())
-        self.data = data.replace('\u1361\u1361', '\u1362').replace('\u1361\u002D', '\u1366').replace('\u1362\u1361', '\u1362')
-        # self._set_parameters()
+        if 'unorm' in modes:
+            pass
+        if 'charnorm' in modes:
+            pass
+        if 'whitespace' in modes:
+            # Strip extra whitespace and convert Ethiopic word separators to space
+            # TODO:
+            #   * determine what do you about common pnctuation
+            #   * process spaces added to ethiopic punctuation
+            data = _regex.sub(r'\u1361\p{Zs}*', ' ', data)
+            data = _regex.sub(r'\s+', ' ', data)
+        if 'punctuation' in modes:
+            self.data = data.replace(
+              '\u1361\u1361', '\u1362').replace(
+              '\u1361\u002D', '\u1366').replace(
+              '\u1362\u1361', '\u1362')
+        else:
+            data = _regex.sub(r'[\p{P}]+', '', data)
+        self._set_parameters(data)
         return self
-
+    
     def count_characters(self, locale = None):
         if locale is not None:
             self._locale = locale
@@ -1787,8 +1865,8 @@ class EthiopicUstr(ustr):
         return integer_to_ethiopic(self.data)
 
     def to_first_order(self):
-        self.data = _Ethi(self.data).convert_order('ግዕዝ', as_string=True)
-        # self._set_parameters()
+        data = _Ethi(self.data).convert_order('ግዕዝ', as_string=True)
+        self._set_parameters(data)
         return self
 
     def to_integer(self, number = None):
@@ -1816,6 +1894,5 @@ class GreekUstr(ustr):
         if remove_punctuation:
             data = _regex.sub(r'[\p{P}]', '', data)
         # self.data = data.replace('\u1361\u1361', '\u1362').replace('\u1361\u002D', '\u1366')
-        self.data = data
-        # self._set_parameters()
+        self._set_parameters(data)
         return self

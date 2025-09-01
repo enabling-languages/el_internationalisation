@@ -11,7 +11,7 @@ from hexdump import hexdump as _hexdump
 #   * https://util.unicode.org/UnicodeJsps/properties.html
 #   * https://util.unicode.org/UnicodeJsps/properties.jsp
 
-BINARY_PROPERTIES = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 36, 42, 43, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
+BINARY_PROPERTIES = frozenset([0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 36, 42, 43, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64])
 ICU_VERSION = float('.'.join(_icu.ICU_VERSION.split('.')[0:2]))
 
 class InvalidCharLengthException(Exception):

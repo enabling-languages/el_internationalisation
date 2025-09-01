@@ -1,6 +1,10 @@
-from typing import List as _List, Optional as _Optional
+from el_internationalisation import gr
 import icu as _icu
-from .ustrings import gr
+import more_itertools as _mit
+import requests as _requests
+from typing import List as _List, Optional as _Optional
+import wcwidth
+import xml.etree.ElementTree as _ET
 
 def list_to_string(items, sep = ', ', drop_bool = True):
     """Convert list to string
@@ -136,7 +140,6 @@ def character_requirements(languages: _List[str], ngraphs: bool = False, keep_gr
     letters = sorted(list(set(letters)), key=collator.getSortKey)
     return letters
 
-import wcwidth
 def len_char_terminal(phrase):
     return tuple(map(wcwidth.wcwidth, phrase))
 def len_string_terminal(phrase):
@@ -162,10 +165,87 @@ def find_char_index(character:str, ustring:str) -> _Optional[int]:
         return None
     return idx
 
-def expand_range(start_char='', end_char='', pattern=''):
+def expand_range(start_char: str = '', end_char: str = '', pattern: str = '') -> list[str]:
+    """ Expand a range of characters or a UnicodeSet pattern into a list of characters.
+
+    C.f generate_pattern()
+
+    Args:
+        start_char (str, optional): initial character in range. Defaults to ''.
+        end_char (str, optional): final character in range. Defaults to ''.
+        pattern (str, optional): _description_. Defaults to ''.
+
+    Returns:
+        list[str]: list of characters
+    """    
     if pattern:
         return list(_icu.UnicodeSet(pattern))
     start_char = chr(start_char) if isinstance(start_char, int) else start_char
     end_char = chr(end_char) if isinstance(end_char, int) else end_char
     sequence = rf'[{start_char}-{end_char}]'
     return list(_icu.UnicodeSet(sequence))
+
+def generate_pattern(sequence: list[str] | _icu.UnicodeSet) -> str:
+    """ Generate a regex pattern from a list of characters or a UnicodeSet.
+
+    C.f expand_range(), get_exemplars()
+
+    Examples:
+        >>> generate_pattern(['a', 'b', 'c', 'd', 'g', 'h', 'z'])
+        '[a-dghz]'
+        >>> uset = _icu.UnicodeSet("[a-dA-DgGhHzZ]")
+        >>> generate_pattern(uset)
+        '[A-DGHZa-dghz]'
+        >>> generate_pattern(get_exemplars('de', use_sldr=True)['main'])
+        '[a-zßäöü]'
+
+    Args:
+        sequence (list[str] | _icu.UnicodeSet): A list of characters or UnicodeSet
+
+    Returns:
+        str: A regex pattern representing the characters.
+    """
+    if isinstance(sequence, _icu.UnicodeSet):
+        sequence = list(sequence)
+    saved_groups = []
+    for group in _mit.consecutive_groups(sequence, ord):
+        saved_groups.append(list(group))  # Copy group elements
+    iter_range = '['
+    for group in saved_groups:
+        if len(group) > 2:
+            iter_range += f"{group[0]}-{group[-1]}"
+        elif len(group) == 2:
+            iter_range += f"{group[0]}{group[1]}"
+        else:
+            iter_range += f"{group[0]}"
+    iter_range += ']'
+    return iter_range
+
+def get_exemplars(locale_id: str, use_sldr: bool = False) -> dict[str, str]:
+    """Retrieve CLDR exemplar characters for a locale.
+
+    Args:
+        locale_id (str): A locale identifier, e.g. 'de', 'fr'
+        use_sldr (bool, optional): Use SLDR data rather than CLDR data. Defaults to False.
+
+    Returns:
+        dict[str, str]: A dictionary of exemplar character sets.
+    """    
+    locale_id = locale_id.replace('-', '_')
+    exemplar_data = dict()
+    url = rf'https://raw.githubusercontent.com/unicode-org/cldr/main/common/main/{locale_id}.xml'
+    if use_sldr:
+        initial_letter = locale_id[0]
+        url = rf'https://raw.githubusercontent.com/silnrsi/sldr/refs/heads/master/sldr/{initial_letter}/{locale_id}.xml'
+    response = _requests.get(url)
+    if response.status_code not in (404, 500):
+        tree = _ET.fromstring(response.text)
+        result = tree.findall('characters/exemplarCharacters')
+        for element in result:
+            type = element.attrib.get('type', 'main')
+            if type not in ["numbers", "punctuation"]:
+                if element.text and element.text != '↑↑↑':
+                    exemplar_data[type] = _icu.UnicodeSet(rf'{element.text}')
+        return exemplar_data
+    return None
+
