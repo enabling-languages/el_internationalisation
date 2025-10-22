@@ -73,7 +73,7 @@ def count_ngraphs(text, ngram_length=2):
 #
 ####################
 
-def splitString(text):
+def split_string(text):
     """Typecast string to a list, splitting sting into a list of characters.
     Character level tokenisation.
 
@@ -85,7 +85,7 @@ def splitString(text):
     """
     return list(text)
 
-def utf8len(text):
+def utf8_len(text):
     """Number of bytes required when string is using UTF-8 encoding.
 
     Args:
@@ -96,7 +96,7 @@ def utf8len(text):
     """
     return len(text.encode('utf-8'))
 
-def utf16len(text):
+def utf16_len(text):
     """Number of bytes required when string is using UTF-16 LE or BE encoding.
 
     Args:
@@ -143,7 +143,7 @@ def codepoints(text: str, prefix: bool = False, extended: bool = False) -> str |
         return ' '.join(f"U+{ord(c):04X}" for c in text) if prefix else ' '.join(f"{ord(c):04X}" for c in text)
 cp = codepoints
 
-def codepointsToChar(codepoints):
+def codepoints_to_char(codepoints):
     """Convert a string of comma or space separated unicode codepoints to characters.
 
     Convert a string of comma or space separated unicode codepoints to characters.
@@ -241,6 +241,9 @@ def is_script(text:str , script:str , common:bool=False) -> bool:
     Returns:
         bool: Result of string tested against specified script.
     """
+    # TODO:
+    #  - Add support for inherited
+    #  - Add support for extended script
     pattern_string = r'^[\p{' + script + r'}\p{Common}]+$' if common else r'^\p{' + script + r'}+$'
     pattern = _regex.compile(pattern_string)
     return bool(_regex.match(pattern, text))
@@ -474,51 +477,51 @@ def register_transformation(id: str, rules: str, direction: int = _icu.UTransDir
         _icu.Transliterator.registerInstance(transformer)
     return None
 
-def toNFD(text, use_icu=False):
+def to_NFD(text, use_icu = True):
     if use_icu:
         normaliser = _icu.Normalizer2.getNFDInstance()
         return normaliser.normalize(text)
     return _unicodedataplus.normalize("NFD", text)
-NFD = toNFD
+NFD = to_NFD
 
-def toNFKD(text, use_icu=False):
+def to_NFKD(text, use_icu = True):
     if use_icu:
         normaliser = _icu.Normalizer2.getNFKDInstance()
         return normaliser.normalize(text)
     return _unicodedataplus.normalize("NFKD", text)
-NFKD = toNFKD
+NFKD = to_NFKD
 
-def toNFC(text, use_icu=False):
+def to_NFC(text, use_icu = True):
     if use_icu:
         normaliser = _icu.Normalizer2.getNFCInstance()
         return normaliser.normalize(text)
     return _unicodedataplus.normalize("NFC", text)
-NFC = toNFC
+NFC = to_NFC
 
-def toNFKC(text, use_icu=False):
+def to_NFKC(text, use_icu = True):
     if use_icu:
         normaliser = _icu.Normalizer2.getNFKCInstance()
         return normaliser.normalize(text)
     return _unicodedataplus.normalize("NFKC", text)
-NFKC = toNFKC
+NFKC = to_NFKC
 
-def toNFKC_Casefold(text, use_icu=False):
+def to_NFKC_Casefold(text, use_icu = True):
     if use_icu:
         normaliser = _icu.Normalizer2.getNFKCCasefoldInstance()
         return normaliser.normalize(text)
     pattern = _regex.compile(r"\p{Default_Ignorable_Code_Point=Yes}")
     text = _regex.sub(pattern, '', text)
     return _unicodedataplus.normalize("NFC", _unicodedataplus.normalize('NFKC', text).casefold())
-NFKC_CF = toNFKC_Casefold
+NFKC_CF = to_NFKC_Casefold
 
-def toCasefold(text: str, use_icu: bool = True, turkic: bool = False) -> str:
+def to_casefold(text: str, turkic: bool = False, use_icu: bool = True) -> str:
     if use_icu:
         option: int = 1 if turkic else 0
         # return str(_icu.UnicodeString(text).foldCase(option))
         return _icu.CaseMap.fold(option, text)
     return  text.casefold()
 
-fold_case = toCasefold
+fold_case = to_casefold
 
 # Replace values matching dictionary keys with values
 def replace_all(text, pattern_dict):
@@ -542,87 +545,177 @@ def normalise_hangul(s, normalisation_form = "NFC"):
 def marc_hangul(text):
     return "".join(list(map(normalise_hangul, _regex.split(r'(\P{Hangul})', text))))
 
-def normalise(nf, text, use_icu=False):
+def marc21_normalise(text):
+    # Normalise to NFD
+    text = _unicodedataplus.normalize("NFD", text)
+    # Latin variations between NFD and MNF
+    latn_rep = {
+        "\u004F\u031B": "\u01A0",
+        "\u006F\u031B": "\u01A1",
+        "\u0055\u031B": "\u01AF",
+        "\u0075\u031B": "\u01B0"
+    }
+    # Cyrillic variations between NFD and MNF
+    cyrl_rep = {
+        "\u0418\u0306": "\u0419",
+        "\u0438\u0306": "\u0439",
+        "\u0413\u0301": "\u0403",
+        "\u0433\u0301": "\u0453",
+        "\u0415\u0308": "\u0401",
+        "\u0435\u0308": "\u0451",
+        "\u0406\u0308": "\u0407",
+        "\u0456\u0308": "\u0457",
+        "\u041A\u0301": "\u040C",
+        "\u043A\u0301": "\u045C",
+        "\u0423\u0306": "\u040E",
+        "\u0443\u0306": "\u045E"
+    }
+    # Arabic variations between NFD and MNF
+    arab_rep = {
+        "\u0627\u0653": "\u0622",
+        "\u0627\u0654": "\u0623",
+        "\u0648\u0654": "\u0624",
+        "\u0627\u0655": "\u0625",
+        "\u064A\u0654": "\u0626"
+    }
+    # Only process strings containing characters that need replacing
+    if bool(_regex.search(r'[ouOU]\u031B', text)):
+        text = replace_all(text, latn_rep)
+    if bool(_regex.search(r'[\u0413\u041A\u0433\u043A]\u0301|[\u0418\u0423\u0438\u0443]\u0306|[\u0406\u0415\u0435\u0456]\u0308', text)):
+        text = replace_all(text, cyrl_rep)
+    if bool(_regex.search(r'[\u0627\u0648\u064A]\u0654|\u0627\u0655|\u0627\u0653', text)):
+        text = replace_all(text, arab_rep)
+    if bool(_regex.search(r'\p{Hangul}', text)):
+        text = marc_hangul(text)
+    return text
+
+def normalise(nf, text, use_icu = True):
     nf = nf.upper()
     if nf not in ["NFC", "NFKC", "NFKC_CF", "NFD", "NFKD", "NFM21"]:
         nf="NFC"
-    # MNF (Marc Normalisation Form)
-    def marc21_normalise(text):
-        # Normalise to NFD
-        text = _unicodedataplus.normalize("NFD", text)
-        # Latin variations between NFD and MNF
-        latn_rep = {
-            "\u004F\u031B": "\u01A0",
-            "\u006F\u031B": "\u01A1",
-            "\u0055\u031B": "\u01AF",
-            "\u0075\u031B": "\u01B0"
-        }
-        # Cyrillic variations between NFD and MNF
-        cyrl_rep = {
-            "\u0418\u0306": "\u0419",
-            "\u0438\u0306": "\u0439",
-            "\u0413\u0301": "\u0403",
-            "\u0433\u0301": "\u0453",
-            "\u0415\u0308": "\u0401",
-            "\u0435\u0308": "\u0451",
-            "\u0406\u0308": "\u0407",
-            "\u0456\u0308": "\u0457",
-            "\u041A\u0301": "\u040C",
-            "\u043A\u0301": "\u045C",
-            "\u0423\u0306": "\u040E",
-            "\u0443\u0306": "\u045E"
-        }
-        # Arabic variations between NFD and MNF
-        arab_rep = {
-            "\u0627\u0653": "\u0622",
-            "\u0627\u0654": "\u0623",
-            "\u0648\u0654": "\u0624",
-            "\u0627\u0655": "\u0625",
-            "\u064A\u0654": "\u0626"
-        }
-        # Only process strings containing characters that need replacing
-        if bool(_regex.search(r'[ouOU]\u031B', text)):
-            text = replace_all(text, latn_rep)
-        if bool(_regex.search(r'[\u0413\u041A\u0433\u043A]\u0301|[\u0418\u0423\u0438\u0443]\u0306|[\u0406\u0415\u0435\u0456]\u0308', text)):
-            text = replace_all(text, cyrl_rep)
-        if bool(_regex.search(r'[\u0627\u0648\u064A]\u0654|\u0627\u0655|\u0627\u0653', text)):
-            text = replace_all(text, arab_rep)
-        if bool(_regex.search(r'\p{Hangul}', text)):
-            text = marc_hangul(text)
-        return text
-    if nf == "NFM21":
-        if use_icu:
-            transform_id = "toNFM21"
-            nfm21_rules = (":: NFD; "
-                ":: [\\p{Hangul}] NFC ; "
-                "\u004F\u031B > \u01A0 ; \u008F\u031B > \u01A1 ; \u0055\u031B > \u01AF ; \u0075\u031B > \u01B0 ; "
-                "\u0415\u0308 > \u0401 ; \u0435\u0308 > \u0451 ; \u0413\u0301 > \u0403 ; \u0433\u0301 > \u0453 ; "
-                "\u0406\u0308 > \u0407 ; \u0456\u0308 > \u0457 ; \u041A\u0301 > \u040C ; \u043A\u0301 > \u045C ; "
-                "\u0423\u0306 > \u040E ; \u0443\u0306 > \u045E ; \u0418\u0306 > \u0419 ; \u0438\u0306 > \u0439 ; "
-                "\u0627\u0653 > \u0622 ; \u0627\u0654 > \u0623 ; \u0648\u0654 > \u0624 ; \u0627\u0655 > \u0625 ; "
-                "\u064A\u0654 > \u0626 ; ")
-            transform_direction = _icu.UTransDirection.FORWARD
-            register_transformation(transform_id, nfm21_rules, transform_direction)
-            transformer = _icu.Transliterator.createInstance(transform_id, transform_direction)
-            return transformer.transliterate(text)
-        else:
-            return marc21_normalise(text)
-    elif nf == "NFKC_CF":
-        if use_icu:
-            normaliser = _icu.Normalizer2.getNFKCCasefoldInstance()
-        else:
-            return toNFKC_Casefold(text)
-    elif nf == "NFC" and use_icu:
-        normaliser = _icu.Normalizer2.getNFCInstance()
-    elif nf == "NFKC" and use_icu:
-        normaliser = _icu.Normalizer2.getNFKCInstance()
-    elif nf == "NFD" and use_icu:
-        normaliser = _icu.Normalizer2.getNFDInstance()
-    elif nf == "NFKD" and use_icu:
-        normaliser = _icu.Normalizer2.getNFKDInstance()
+    match nf:
+        case "NFM21":
+            if use_icu:
+                transform_id = "NFM21"
+                nfm21_rules = (":: NFD; "
+                    ":: [\\p{Hangul}] NFC ; "
+                    "\u004F\u031B > \u01A0 ; \u008F\u031B > \u01A1 ; \u0055\u031B > \u01AF ; \u0075\u031B > \u01B0 ; "
+                    "\u0415\u0308 > \u0401 ; \u0435\u0308 > \u0451 ; \u0413\u0301 > \u0403 ; \u0433\u0301 > \u0453 ; "
+                    "\u0406\u0308 > \u0407 ; \u0456\u0308 > \u0457 ; \u041A\u0301 > \u040C ; \u043A\u0301 > \u045C ; "
+                    "\u0423\u0306 > \u040E ; \u0443\u0306 > \u045E ; \u0418\u0306 > \u0419 ; \u0438\u0306 > \u0439 ; "
+                    "\u0627\u0653 > \u0622 ; \u0627\u0654 > \u0623 ; \u0648\u0654 > \u0624 ; \u0627\u0655 > \u0625 ; "
+                    "\u064A\u0654 > \u0626 ; ")
+                transform_direction = _icu.UTransDirection.FORWARD
+                register_transformation(transform_id, nfm21_rules, transform_direction)
+                transformer = _icu.Transliterator.createInstance(transform_id, transform_direction)
+                return transformer.transliterate(text)
+            else:
+                return marc21_normalise(text)
+        case "NFKC_CF":
+            if use_icu:
+                normaliser = _icu.Normalizer2.getNFKCCasefoldInstance()
+            else:
+                return to_NFKC_Casefold(text, use_icu = False)
+        case "NFC":
+            if use_icu:
+                normaliser = _icu.Normalizer2.getNFCInstance()
+        case "NFKC":
+            if use_icu:
+                normaliser = _icu.Normalizer2.getNFKCInstance()
+        case "NFD":
+            if use_icu:
+                normaliser = _icu.Normalizer2.getNFDInstance()
+        case "NFKD":
+            if use_icu:
+                normaliser = _icu.Normalizer2.getNFKDInstance()
     if use_icu:
         return normaliser.normalize(text)
     return _unicodedataplus.normalize(nf, text)
+
+normalize = normalise
+
+
+# def normalise(nf, text, use_icu = True):
+#     nf = nf.upper()
+#     if nf not in ["NFC", "NFKC", "NFKC_CF", "NFD", "NFKD", "NFM21"]:
+#         nf="NFC"
+#     # NFM21 (Normalisation Form MARC21)
+#     def marc21_normalise(text):
+#         # Normalise to NFD
+#         text = _unicodedataplus.normalize("NFD", text)
+#         # Latin variations between NFD and MNF
+#         latn_rep = {
+#             "\u004F\u031B": "\u01A0",
+#             "\u006F\u031B": "\u01A1",
+#             "\u0055\u031B": "\u01AF",
+#             "\u0075\u031B": "\u01B0"
+#         }
+#         # Cyrillic variations between NFD and MNF
+#         cyrl_rep = {
+#             "\u0418\u0306": "\u0419",
+#             "\u0438\u0306": "\u0439",
+#             "\u0413\u0301": "\u0403",
+#             "\u0433\u0301": "\u0453",
+#             "\u0415\u0308": "\u0401",
+#             "\u0435\u0308": "\u0451",
+#             "\u0406\u0308": "\u0407",
+#             "\u0456\u0308": "\u0457",
+#             "\u041A\u0301": "\u040C",
+#             "\u043A\u0301": "\u045C",
+#             "\u0423\u0306": "\u040E",
+#             "\u0443\u0306": "\u045E"
+#         }
+#         # Arabic variations between NFD and MNF
+#         arab_rep = {
+#             "\u0627\u0653": "\u0622",
+#             "\u0627\u0654": "\u0623",
+#             "\u0648\u0654": "\u0624",
+#             "\u0627\u0655": "\u0625",
+#             "\u064A\u0654": "\u0626"
+#         }
+#         # Only process strings containing characters that need replacing
+#         if bool(_regex.search(r'[ouOU]\u031B', text)):
+#             text = replace_all(text, latn_rep)
+#         if bool(_regex.search(r'[\u0413\u041A\u0433\u043A]\u0301|[\u0418\u0423\u0438\u0443]\u0306|[\u0406\u0415\u0435\u0456]\u0308', text)):
+#             text = replace_all(text, cyrl_rep)
+#         if bool(_regex.search(r'[\u0627\u0648\u064A]\u0654|\u0627\u0655|\u0627\u0653', text)):
+#             text = replace_all(text, arab_rep)
+#         if bool(_regex.search(r'\p{Hangul}', text)):
+#             text = marc_hangul(text)
+#         return text
+#     if nf == "NFM21":
+#         if use_icu:
+#             transform_id = "NFM21"
+#             nfm21_rules = (":: NFD; "
+#                 ":: [\\p{Hangul}] NFC ; "
+#                 "\u004F\u031B > \u01A0 ; \u008F\u031B > \u01A1 ; \u0055\u031B > \u01AF ; \u0075\u031B > \u01B0 ; "
+#                 "\u0415\u0308 > \u0401 ; \u0435\u0308 > \u0451 ; \u0413\u0301 > \u0403 ; \u0433\u0301 > \u0453 ; "
+#                 "\u0406\u0308 > \u0407 ; \u0456\u0308 > \u0457 ; \u041A\u0301 > \u040C ; \u043A\u0301 > \u045C ; "
+#                 "\u0423\u0306 > \u040E ; \u0443\u0306 > \u045E ; \u0418\u0306 > \u0419 ; \u0438\u0306 > \u0439 ; "
+#                 "\u0627\u0653 > \u0622 ; \u0627\u0654 > \u0623 ; \u0648\u0654 > \u0624 ; \u0627\u0655 > \u0625 ; "
+#                 "\u064A\u0654 > \u0626 ; ")
+#             transform_direction = _icu.UTransDirection.FORWARD
+#             register_transformation(transform_id, nfm21_rules, transform_direction)
+#             transformer = _icu.Transliterator.createInstance(transform_id, transform_direction)
+#             return transformer.transliterate(text)
+#         else:
+#             return marc21_normalise(text)
+#     elif nf == "NFKC_CF":
+#         if use_icu:
+#             normaliser = _icu.Normalizer2.getNFKCCasefoldInstance()
+#         else:
+#             return toNFKC_Casefold(text)
+#     elif nf == "NFC" and use_icu:
+#         normaliser = _icu.Normalizer2.getNFCInstance()
+#     elif nf == "NFKC" and use_icu:
+#         normaliser = _icu.Normalizer2.getNFKCInstance()
+#     elif nf == "NFD" and use_icu:
+#         normaliser = _icu.Normalizer2.getNFDInstance()
+#     elif nf == "NFKD" and use_icu:
+#         normaliser = _icu.Normalizer2.getNFKDInstance()
+#     if use_icu:
+#         return normaliser.normalize(text)
+#     return _unicodedataplus.normalize(nf, text)
 
 ####################
 #
@@ -632,35 +725,35 @@ def normalise(nf, text, use_icu=False):
 
 # Simple matching
 #   NFD(X) = NFD(Y)
-def simple_match(x, y, use_icu=False):
+def simple_match(x, y):
     return x == y
 
 # Cased matching
 #   toLower(NFD(X)) = toLower(NFD(Y))
 # TODO:
 #    add lowercaseing
-def cased_match(x, y, use_icu=False):
-    return toNFD(x, use_icu=use_icu) == toNFD(y, use_icu=use_icu)
+def cased_match(x, y, use_icu = True):
+    return to_NFD(x, use_icu = use_icu) == to_NFD(y, use_icu = use_icu)
 
 # Caseless matching
 #   toCasefold(X) = toCasefold(Y)
-def caseless_match(x, y, use_icu=False):
-    return toCasefold(x, use_icu=use_icu) == toCasefold(y, use_icu=use_icu)
+def caseless_match(x, y, use_icu = True):
+    return to_casefold(x, use_icu = use_icu) == to_casefold(y, use_icu = use_icu)
 
 # Canonical caseless matching
 #   NFD(toCasefold(NFD(X))) = NFD(toCasefold(NFD(Y)))
-def canonical_caseless_match(x, y, use_icu=False, turkic=False):
-    return toNFD(toCasefold(toNFD(x, use_icu=use_icu), use_icu=use_icu, turkic=turkic), use_icu=use_icu) == toNFD(toCasefold(toNFD(y, use_icu=use_icu), use_icu=use_icu, turkic=turkic), use_icu=use_icu)
+def canonical_caseless_match(x, y, turkic = False, use_icu = True):
+    return to_NFD(to_casefold(to_NFD(x, use_icu = use_icu), turkic = turkic, use_icu = use_icu), use_icu = use_icu) == to_NFD(to_casefold(to_NFD(y, use_icu = use_icu), turkic = turkic, use_icu = use_icu), use_icu = use_icu)
 
 # Compatibility caseless match
 #   NFKD(toCasefold(NFKD(toCasefold(NFD(X))))) = NFKD(toCasefold(NFKD(toCasefold(NFD(Y)))))
-def compatibility_caseless_match(x, y, use_icu=False, turkic=False):
-    return toNFKD(toCasefold(toNFKD(toCasefold(toNFD(x, use_icu=use_icu), use_icu=use_icu, turkic=turkic), use_icu=use_icu), use_icu=use_icu), use_icu=use_icu) == toNFKD(toCasefold(toNFKD(toCasefold(toNFD(y, use_icu=use_icu), use_icu=use_icu, turkic=turkic), use_icu=use_icu), use_icu=use_icu), use_icu=use_icu)
+def compatibility_caseless_match(x, y, turkic = False, use_icu = True):
+    return to_NFKD(to_casefold(to_NFKD(to_casefold(to_NFD(x, use_icu = use_icu), turkic = turkic, use_icu = use_icu), use_icu = use_icu), use_icu = use_icu), use_icu = use_icu) == to_NFKD(to_casefold(to_NFKD(to_casefold(to_NFD(y, use_icu = use_icu), turkic = turkic, use_icu = use_icu), use_icu = use_icu), use_icu = use_icu), use_icu = use_icu)
 
 # Identifier caseless match for a string Y if and only if: 
 #   toNFKC_Casefold(NFD(X)) = toNFKC_Casefold(NFD(Y))`
-def identifier_caseless_match(x, y, use_icu=False, turkic=False):
-    return toNFKC_Casefold(toNFD(x, use_icu=use_icu), use_icu=use_icu) == toNFKC_Casefold(toNFD(y, use_icu=use_icu), use_icu=use_icu)
+def identifier_caseless_match(x, y, turkic = False, use_icu = True):
+    return to_NFKC_Casefold(to_NFD(x, use_icu = use_icu), use_icu = use_icu) == to_NFKC_Casefold(to_NFD(y, use_icu = use_icu), use_icu = use_icu)
 
 ####################
 #
@@ -669,12 +762,12 @@ def identifier_caseless_match(x, y, use_icu=False, turkic=False):
 #
 ####################
 
-def multiple_replace(string, rep_dict):
-    pattern = _regex.compile("|".join([_regex.escape(k) for k in sorted(rep_dict,key=len,reverse=True)]), flags=_regex.DOTALL)
-    return pattern.sub(lambda x: rep_dict[x.group(0)], string)
+# def multiple_replace(string, rep_dict):
+#     pattern = _regex.compile("|".join([_regex.escape(k) for k in sorted(rep_dict,key=len,reverse=True)]), flags=_regex.DOTALL)
+#     return pattern.sub(lambda x: rep_dict[x.group(0)], string)
 
-tr_tolower_replacements = {'I':'ı', 'İ':'i'}
-tr_toupper_replacements = {'ı':'I', 'i':'İ'}
+# tr_tolower_replacements = {'I':'ı', 'İ':'i'}
+# tr_toupper_replacements = {'ı':'I', 'i':'İ'}
 
 # To lowercase
 # def trLower(text: str) -> str:
@@ -717,30 +810,30 @@ tr_toupper_replacements = {'ı':'I', 'i':'İ'}
 def set_locale(localeID: str) -> _icu.Locale:
     return _icu.Locale(localeID)
 
-def toLower(text: str, local = ROOT_LOCALE, use_icu: bool = True) -> str:
+def to_lower(text: str, locale = ROOT_LOCALE, use_icu: bool = True) -> str:
     if not use_icu:
         return text.lower()
     # return str(_icu.UnicodeString(text).toLower(loc))
     return _icu.CaseMap.toLower(locale, text)
 
-def toUpper(text: str, locale = ROOT_LOCALE, use_icu: bool = True) -> str:
+def to_upper(text: str, locale = ROOT_LOCALE, use_icu: bool = True) -> str:
     if not use_icu:
         return text.upper()
     # return str(_icu.UnicodeString(text).toUpper(loc))
     return _icu.CaseMap.toUpper(locale, text)
 
-def toTitle(text: str, locale = ROOT_LOCALE, use_icu: bool = True) -> str:
+def to_title(text: str, locale = ROOT_LOCALE, use_icu: bool = True) -> str:
     if not use_icu:
         return text.title()
     # return str(_icu.UnicodeString(text).toTitle(loc))
     return _icu.CaseMap.toTitle(locale, 0, text)
 
-def toSentence(text: str, locale = ROOT_LOCALE,  use_icu: bool = True) -> str:
+def to_sentence(text: str, locale = ROOT_LOCALE,  use_icu: bool = True) -> str:
     if not use_icu:
         return text.capitalize()
     return _icu.CaseMap.toTitle(locale, 64, text)
 
-capitalise = toSentence
+capitalise = to_sentence
 
 # TURKIC = ["tr", "az"]
 
@@ -841,8 +934,8 @@ def get_brkiter(bi_mode = 'grapheme', locale = ROOT_LOCALE):
 set_bi = get_brkiter
 
 def get_boundaries(text, brkiter):
-    # if not isinstance(text, _icu.UnicodeString):
-    #     text = _icu.UnicodeString(text)
+    if not isinstance(text, _icu.UnicodeString):
+        text = _icu.UnicodeString(text)
     brkiter.setText(text)
     boundaries = [*brkiter]
     boundaries.insert(0, 0)
@@ -859,8 +952,8 @@ def tokenise(text, locale = ROOT_LOCALE, bi_mode = "word"):
     Returns:
         _list_: list of tokens in string.
     """
-    # if not isinstance(text, _icu.UnicodeString):
-    #     text = _icu.UnicodeString(text)
+    if not isinstance(text, _icu.UnicodeString):
+        text = _icu.UnicodeString(text)
     match bi_mode.lower():
         case "character":
             return list(text)
@@ -883,7 +976,7 @@ def tokenise(text, locale = ROOT_LOCALE, bi_mode = "word"):
             bi = _icu.BreakIterator.createSentenceInstance(locale)
         case _:
             bi = _icu.BreakIterator.createWordInstance(locale)
-    bi = get_brkiter(bi_mode, locale)
+    # bi = get_brkiter(bi_mode, locale)
     boundary_indices = get_boundaries(text, bi)
     # return [str(text[boundary_indices[i]:boundary_indices[i+1]]) for i in range(len(boundary_indices)-1)]
     tokens = [text[boundary_indices[i]:boundary_indices[i+1]] for i in range(len(boundary_indices)-1)]
@@ -903,11 +996,11 @@ def tokenise_bi(text, brkiter):
     Returns:
         list: Tokens in string.
     """
-    # if not isinstance(text, _icu.UnicodeString):
-    #     text = _icu.UnicodeString(text)
+    if not isinstance(text, _icu.UnicodeString):
+        text = _icu.UnicodeString(text)
     boundary_indices = get_boundaries(text, brkiter)
     tokens = [text[boundary_indices[i]:boundary_indices[i+1]] for i in range(len(boundary_indices)-1)]
-    if isinstance(text, icu.UnicodeString):
+    if isinstance(text, _icu.UnicodeString):
         return [str(g) for g in tokens]
     return tokens
 
@@ -974,7 +1067,7 @@ def get_generated_tokens(text:str, bi: _icu.BreakIterator | None = None) -> list
 # def graphemes(text):
 #     return _regex.findall(r'\X',text)
 
-graphemes = _partial(tokenise, mode="grapheme")
+graphemes = _partial(tokenise, bi_mode="grapheme")
 graphemes.__doc__ = """Grapheme tokenisation of string.
 
     Args:
@@ -1014,9 +1107,8 @@ class ustr(_UserString):
         return f"{class_name}(nform={self._nform}, locale={self._locale}, transformed={transformed}, string={truncated})"
 
     def _isbicameral(self):
-        # Garay (Gara) to be added in Unicode v16
         # Zaghawa (Beria Giray Erfe) not in Unicode, preliminary proposal available, no script code.
-        bicameral_scripts = {'Adlam', 'Armenian', 'Cherokee', 'Coptic', 'Cyrillic', 'Deseret', 'Glagolitic', 'Greek', 'Old_Hungarian', 'Latin', 'Osage', 'Vithkuqi', 'Warang_Citi'}
+        bicameral_scripts = {'Adlam', 'Armenian', 'Cherokee', 'Coptic', 'Cyrillic', 'Deseret', 'Garay','Glagolitic', 'Greek', 'Old_Hungarian', 'Latin', 'Osage', 'Vithkuqi', 'Warang_Citi'}
         scripts_in_text = set()
         for char in self.data:
             scripts_in_text.add(_unicodedataplus.script(char))
@@ -1099,7 +1191,7 @@ class ustr(_UserString):
         #     self.data = f"{str(_icu.UnicodeString(data[0]).toTitle(loc))}"
         # else:
         #     self.data = f"{str(_icu.UnicodeString(data[0]).toTitle(loc))} {str(_icu.UnicodeString(data[1]).toLower(loc))}"
-        self.data = toSentence(self.data, loc = loc, use_icu = True)
+        self.data = to_sentence(self.data, loc = loc, use_icu = True)
         self._set_parameters()
         return self
 
@@ -1109,7 +1201,7 @@ class ustr(_UserString):
         # return str(_icu.UnicodeString(self.data).foldCase())
         # option = 1 if turkic else 0
         # self.data = str(_icu.UnicodeString(self.data).foldCase(option))
-        self.data = toCasefold(self.data, turkic = turkic, use_icu = True)
+        self.data = to_casefold(self.data, turkic = turkic)
         self._set_parameters()
         return self
 
@@ -1118,7 +1210,7 @@ class ustr(_UserString):
 
     # Canonical case-insensitive
     def cci(self, turkic=False):
-        self.data = toNFD(toCasefold(toNFD(self.data, use_icu=True), turkic = turkic, use_icu=True), use_icu=True)
+        self.data = to_NFD(to_casefold(to_NFD(self.data, use_icu=True), turkic = turkic, use_icu=True), use_icu=True)
         self._set_parameters()
         return self
 
@@ -1312,10 +1404,16 @@ class ustr(_UserString):
         # Determines if the specified character is a space character or not. 
         # Note: There are several ICU whitespace functions;
         # This is a C/POSIX migration function.
+        #
+        # TODO: Update to use POSIX ASII and UTF-8 whitespace characters only (use glibc defn).
         status = []
         for char in [char for char in self.data]:
             status.append(_icu.Char.isspace(char))
         return all(status)
+    
+    def isspace_python(self):
+        # Use Python whitespace definition
+        return self.data.isspace()
 
     isspace = isspace_posix
 
@@ -1421,7 +1519,7 @@ class ustr(_UserString):
             loc = self._set_locale('default')
         # return str(_icu.UnicodeString(self.data).toLower(_icu.Locale(locale))) if locale else str(_icu.UnicodeString(self.data).toLower())
         # self.data = str(_icu.UnicodeString(self.data).toLower(loc))
-        self.data = toLower(self.data, loc, True)
+        self.data = to_lower(self.data, loc, True)
         self._set_parameters()
         return self
 
@@ -1449,7 +1547,7 @@ class ustr(_UserString):
         elif self._nform:
             nform = self._nform
         else:
-            self._nform = nform = "NFD"
+            nform = self._nform = "NFD"
         if use_icu:
             match nform:
                 case 'NFC':
@@ -1575,7 +1673,7 @@ class ustr(_UserString):
         else:
             loc = self._set_locale('default')
         # self.data = str(_icu.UnicodeString(self.data).toTitle(loc))
-        self.data = toTitle(self.data, loc, True)
+        self.data = to_title(self.data, loc, True)
         self._set_parameters()
         return self
 
@@ -1594,12 +1692,14 @@ class ustr(_UserString):
         counts = _Counter(tokens)
         return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
 
-    def tokenise(self, mode="word", locale="default", pattern=None):
+    def tokenise(self, bi_mode="word", locale="default", pattern=None):
         # Character, grapheme, or word tokens in an ustr object
+        # TODO:
+        #    - sort out use or not of locale
         loc = self._set_locale(locale)
         tokens = []
         data = self.data
-        match mode.lower():
+        match bi_mode.lower():
             case "character":
                 tokens = [c for c in data]
             case "grapheme":
@@ -1670,7 +1770,7 @@ class ustr(_UserString):
         else:
             loc = self._set_locale('default')
         # self.data = str(_icu.UnicodeString(self.data).toUpper(loc))
-        self.data = toUpper(self.data, loc, True)
+        self.data = to_upper(self.data, loc, True)
         self._set_parameters()
         return self
 
